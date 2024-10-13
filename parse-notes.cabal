@@ -65,7 +65,7 @@ library
     relude
 
   default-language: GHC2021
-  exposed-modules:  Note.Parser
+  exposed-modules:  Notes.Parser
 
 executable parse-notes
   -- Import common warning flags.
@@ -97,6 +97,7 @@ test-suite parse-notes-test
   build-depends:
     , base
     , hspec
+    , megaparsec
     , parse-notes
     , relude
     , tasty
