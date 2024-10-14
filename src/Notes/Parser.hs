@@ -1,9 +1,17 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Notes.Parser (title, body) where
+module Notes.Parser
+  ( noteTitle,
+    noteBody,
+    noteBodyLine,
+    note,
+    Note (..),
+  )
+where
 
 import Data.Char (isPunctuation)
-import Text.Megaparsec (Parsec, anySingle, anySingleBut, parse, satisfy)
+import Text.Megaparsec (Parsec, anySingle, anySingleBut, eof, parse, satisfy)
 import Text.Megaparsec.Char qualified
 import Text.Megaparsec.Char.Lexer qualified
 import Text.Megaparsec.Error (ParseErrorBundle (..))
@@ -14,11 +22,12 @@ data Note = Note
   { title :: !Text,
     body :: ![Text]
   }
+  deriving stock (Show, Eq)
 
-parseNote :: Parser Note
-parseNote = do
+note :: Parser Note
+note = do
   title <- noteTitle
-  body <- many (noteBody <* Text.Megaparsec.Char.eol)
+  body <- noteBody
   pure
     Note
       { title,
@@ -34,12 +43,24 @@ noteTitle = do
   Text.Megaparsec.Char.string "Note"
   Text.Megaparsec.Char.space
   Text.Megaparsec.Char.char '['
-  fmap toText $ many (anySingleBut ']')
+  title <- fmap toText $ many (anySingleBut ']')
+  Text.Megaparsec.Char.char ']'
+  pure title
 
-noteBody :: Parser Text
-noteBody = do
+noteBody :: Parser [Text]
+noteBody = many noteBodyLine
+
+noteBodyLine :: Parser Text
+noteBodyLine = do
+  noteBodyLineEnd
   commentStart
-  fmap toText $ many anySingle
+  fmap toText $ many (anySingleBut '\n')
+
+noteBodyLineEnd :: Parser ()
+noteBodyLineEnd =
+  void Text.Megaparsec.Char.newline
+    <|> void Text.Megaparsec.Char.eol
+    <|> eof
 
 commentStart :: Parser ()
 commentStart = do
