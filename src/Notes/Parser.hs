@@ -7,14 +7,12 @@ module Notes.Parser
     noteBodyLine,
     note,
     Note (..),
+    parseNotes,
   )
 where
 
-import Data.Char (isPunctuation)
-import Text.Megaparsec (Parsec, anySingle, anySingleBut, eof, parse, satisfy)
+import Text.Megaparsec (Parsec, anySingleBut, eof, parseMaybe)
 import Text.Megaparsec.Char qualified
-import Text.Megaparsec.Char.Lexer qualified
-import Text.Megaparsec.Error (ParseErrorBundle (..))
 
 type Parser = Parsec () Text
 
@@ -23,6 +21,9 @@ data Note = Note
     body :: ![Text]
   }
   deriving stock (Show, Eq)
+
+parseNotes :: Text -> [Note]
+parseNotes content = fromMaybe [] (parseMaybe (many note) content)
 
 note :: Parser Note
 note = do
@@ -38,33 +39,35 @@ noteTitle :: Parser Text
 noteTitle = do
   commentStart
   Text.Megaparsec.Char.space
-  Text.Megaparsec.Char.char '#'
+  void (Text.Megaparsec.Char.char '#')
   Text.Megaparsec.Char.space
-  Text.Megaparsec.Char.string "Note"
+  void (Text.Megaparsec.Char.string "Note")
   Text.Megaparsec.Char.space
-  Text.Megaparsec.Char.char '['
+  void (Text.Megaparsec.Char.char '[')
   title <- fmap toText $ many (anySingleBut ']')
-  Text.Megaparsec.Char.char ']'
+  void (Text.Megaparsec.Char.char ']')
+  noteBodyLineEnd
   pure title
 
 noteBody :: Parser [Text]
-noteBody = many noteBodyLine
+noteBody = do
+  lines <- many noteBodyLine
+  pure lines
 
 noteBodyLine :: Parser Text
 noteBodyLine = do
-  noteBodyLineEnd
   commentStart
-  fmap toText $ many (anySingleBut '\n')
+  content <- fmap toText $ many (anySingleBut '\n')
+  noteBodyLineEnd
+  pure content
 
 noteBodyLineEnd :: Parser ()
 noteBodyLineEnd =
   void Text.Megaparsec.Char.newline
-    <|> void Text.Megaparsec.Char.eol
     <|> eof
 
 commentStart :: Parser ()
 commentStart = do
-  Text.Megaparsec.Char.char '-'
-  Text.Megaparsec.Char.char '-'
+  void (Text.Megaparsec.Char.string "--")
   Text.Megaparsec.Char.space
   pure ()

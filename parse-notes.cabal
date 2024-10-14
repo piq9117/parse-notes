@@ -49,13 +49,17 @@ extra-doc-files: CHANGELOG.md
 -- extra-source-files:
 
 common warnings
-  ghc-options: -Wall
+  ghc-options:
+    -Wall -ddump-minimal-imports -Werror -Wcompat -Wno-name-shadowing
+    -Wno-type-equality-out-of-scope
 
 library
+  import:           warnings
   hs-source-dirs:   src
   build-depends:
     , base
     , bytestring
+    , conduit
     , megaparsec
     , relude
 
@@ -65,7 +69,9 @@ library
     relude
 
   default-language: GHC2021
-  exposed-modules:  Notes.Parser
+  exposed-modules:
+    Notes.File
+    Notes.Parser
 
 executable parse-notes
   -- Import common warning flags.
@@ -81,7 +87,9 @@ executable parse-notes
   -- other-extensions:
 
   -- Other library packages from which modules are imported.
-  build-depends:    base
+  build-depends:
+    , base
+    , parse-notes
 
   -- Directories containing source files.
   hs-source-dirs:   app

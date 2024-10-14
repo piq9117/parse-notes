@@ -1,0 +1,3 @@
+-- # Note [This is a test file]
+-- This is the body of the note from the test file.
+-- Second line of the body from the test file.
