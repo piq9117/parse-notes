@@ -60,6 +60,7 @@ library
     , base
     , bytestring
     , conduit
+    , cryptohash-md5
     , megaparsec
     , parser-combinators
     , relude
