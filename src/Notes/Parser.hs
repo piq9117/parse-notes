@@ -11,7 +11,15 @@ module Notes.Parser
   )
 where
 
-import Text.Megaparsec (Parsec, anySingleBut, eof, parseMaybe)
+import Control.Applicative.Combinators (manyTill)
+import Text.Megaparsec
+  ( Parsec,
+    anySingle,
+    anySingleBut,
+    eof,
+    lookAhead,
+    parseMaybe,
+  )
 import Text.Megaparsec.Char qualified
 
 type Parser = Parsec () Text
@@ -23,7 +31,15 @@ data Note = Note
   deriving stock (Show, Eq)
 
 parseNotes :: Text -> [Note]
-parseNotes content = fromMaybe [] (parseMaybe (many note) content)
+parseNotes content = fromMaybe [] (fmap catMaybes $ parseMaybe (many noteOrSkip) content)
+
+noteOrSkip :: Parser (Maybe Note)
+noteOrSkip =
+  (Just <$> note) <|> (skipNonNoteContent $> Nothing)
+
+skipNonNoteContent :: Parser ()
+skipNonNoteContent = do
+  void (manyTill anySingle (lookAhead commentStart))
 
 note :: Parser Note
 note = do

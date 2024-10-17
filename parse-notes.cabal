@@ -61,6 +61,7 @@ library
     , bytestring
     , conduit
     , megaparsec
+    , parser-combinators
     , relude
 
   mixins:

@@ -11,7 +11,7 @@ parseFile filepath =
     Conduit.sourceFile filepath
       Conduit..| Conduit.mapMC
         ( \content -> do
-            print content
+            -- TODO insert to sqllite
             print $ parseNotes (decodeUtf8 content)
         )
       Conduit..| Conduit.sinkNull
