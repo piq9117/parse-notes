@@ -58,12 +58,15 @@ library
   hs-source-dirs:   src
   build-depends:
     , base
+    , beam-core
+    , beam-sqlite
     , bytestring
     , conduit
     , cryptohash-md5
     , megaparsec
     , parser-combinators
     , relude
+    , time
 
   mixins:
     base hiding (Prelude),
@@ -73,6 +76,8 @@ library
   default-language: GHC2021
   exposed-modules:
     Notes.File
+    Notes.Models.NoteBody
+    Notes.Models.NoteTitle
     Notes.Parser
 
 executable parse-notes
