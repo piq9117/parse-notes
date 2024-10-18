@@ -26,6 +26,8 @@
           pkgs = nixpkgsFor.${system};
           libs = with pkgs; [
             zlib
+            dbmate
+            sqlite
           ];
         in
         {
@@ -43,6 +45,7 @@
             ] ++ libs;
             shellHook = "export PS1='[$PWD]\n❄ '";
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath libs;
+            DATABASE_URL = "sqlite:db/database.db";
           };
         });
     };

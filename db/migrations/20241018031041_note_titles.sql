@@ -1,0 +1,11 @@
+-- migrate:up
+CREATE TABLE IF NOT EXISTS note_titles (
+  id INTEGER NOT NULL PRIMARY KEY,
+  title TEXT NOT NULL,
+  hash TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- migrate:down
+
