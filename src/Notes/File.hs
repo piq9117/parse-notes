@@ -1,19 +1,29 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Notes.File (parseFile) where
 
-import Conduit ((.|))
+import Conduit (MonadUnliftIO, (.|))
 import Conduit qualified
-import Crypto.Hash.MD5 (hash)
-import Notes.Parser (parseNotes)
+import Notes.DB (ManageDB)
+import Notes.Hash (hashContent)
+import Notes.NoteTitle.Queries (NoteTitleInput (..), insertNoteTitles)
+import Notes.Parser (Note (..), parseNotes)
 
-parseFile :: FilePath -> IO ()
+parseFile :: (MonadIO m, ManageDB m, MonadUnliftIO m) => FilePath -> m ()
 parseFile filepath =
   Conduit.runConduitRes $
     Conduit.sourceFile filepath
       .| Conduit.mapC (parseNotes <<< decodeUtf8)
-      .| Conduit.concatMapC identity
       .| Conduit.mapM_C
-        ( \notes ->
-            print $ hash (show @ByteString notes)
+        ( \notes -> do
+            lift $
+              insertNoteTitles
+                [ NoteTitleInput
+                    { title = note.title,
+                      hash = hashContent note.title
+                    }
+                  | note <- notes
+                ]
         )

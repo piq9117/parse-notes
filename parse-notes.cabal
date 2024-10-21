@@ -57,6 +57,7 @@ library
   import:           warnings
   hs-source-dirs:   src
   build-depends:
+    , aeson
     , base
     , beam-core
     , beam-sqlite
@@ -66,7 +67,10 @@ library
     , megaparsec
     , parser-combinators
     , relude
+    , resource-pool
+    , sqlite-simple
     , time
+    , yaml
 
   mixins:
     base hiding (Prelude),
@@ -75,9 +79,15 @@ library
 
   default-language: GHC2021
   exposed-modules:
+    Notes.App
+    Notes.Config
+    Notes.DB
     Notes.File
+    Notes.Hash
+    Notes.Model
     Notes.Models.NoteBody
     Notes.Models.NoteTitle
+    Notes.NoteTitle.Queries
     Notes.Parser
 
 executable parse-notes
@@ -97,6 +107,13 @@ executable parse-notes
   build-depends:
     , base
     , parse-notes
+    , relude
+    , yaml
+
+  mixins:
+    base hiding (Prelude),
+    relude (Relude as Prelude),
+    relude
 
   -- Directories containing source files.
   hs-source-dirs:   app
