@@ -8,27 +8,28 @@ where
 import Data.Pool (Pool, withResource)
 import Database.Beam.Sqlite (SqliteM, runBeamSqlite)
 import Database.SQLite.Simple (Connection)
+import Notes.Tracing (ActiveSpan)
 
 type Query m = (m ~ SqliteM)
 
 newtype RunDB = RunDB
-  { runDB' :: forall m n a. (MonadIO m, Query n) => n a -> m a
+  { runDB' :: forall m n a. (MonadIO m, Query n) => ActiveSpan -> n a -> m a
   }
 
 class ManageDB m where
   dbRunner :: m RunDB
-  runQuery :: (MonadIO m, Query n) => n a -> m a
-  runQuery query = do
+  runQuery :: (MonadIO m, Query n) => ActiveSpan -> n a -> m a
+  runQuery span query = do
     db <- dbRunner
-    runDB db query
+    runDB db span query
 
-runDB :: (MonadIO m, Query n) => RunDB -> n a -> m a
-runDB RunDB {runDB'} query = runDB' query
+runDB :: (MonadIO m, Query n) => RunDB -> ActiveSpan -> n a -> m a
+runDB RunDB {runDB'} query span = runDB' query span
 
 newRunDB :: Pool Connection -> RunDB
 newRunDB pool =
   RunDB
-    { runDB' = \query ->
+    { runDB' = \_span query ->
         liftIO $ withResource pool $ \connection -> do
           runBeamSqlite connection query
     }

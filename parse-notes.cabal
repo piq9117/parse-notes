@@ -64,7 +64,12 @@ library
     , bytestring
     , conduit
     , cryptohash-md5
+    , exceptions
     , megaparsec
+    , microlens-platform
+    , opentracing
+    , opentracing-jaeger
+    , opentracing-wai
     , parser-combinators
     , relude
     , resource-pool
@@ -89,6 +94,7 @@ library
     Notes.Models.NoteTitle
     Notes.NoteTitle.Queries
     Notes.Parser
+    Notes.Tracing
 
 executable parse-notes
   -- Import common warning flags.

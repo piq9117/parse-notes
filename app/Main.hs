@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedRecordDot #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
@@ -7,6 +8,13 @@ import Notes.App (AppState (..), runAppIO)
 import Notes.Config (Configuration (..), initConnectionPool)
 import Notes.DB (newRunDB)
 import Notes.File (parseFile)
+import Notes.Tracing
+  ( TraceSampling (..),
+    runTracer,
+    spanOpts,
+    traced_,
+    withRootTracer,
+  )
 
 main :: IO ()
 main = do
@@ -17,10 +25,21 @@ main = do
   connectionPool <- initConnectionPool config.connectionString
 
   let runDB = newRunDB connectionPool
-  let appState =
-        AppState
-          { runDB
+
+  let traceSampling =
+        TraceSampling
+          { stdioSamplingRate = Nothing,
+            samplingRate = Nothing,
+            enableStdioReporter = True
           }
 
-  runAppIO appState $ do
-    parseFile "./test/sample-file/TestFile.hs"
+  withRootTracer traceSampling $ \tracer -> runTracer tracer $ do
+    traced_ (spanOpts "parse-notes-init" mempty) $ \span -> do
+      let appState =
+            AppState
+              { runDB,
+                tracer
+              }
+
+      liftIO $ runAppIO appState $ do
+        parseFile span "./test/sample-file/TestFile.hs"
