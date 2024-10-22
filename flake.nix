@@ -16,8 +16,9 @@
         hsPkgs = prev.haskell.packages.ghc965.override {
           overrides = hfinal: hprev: { };
         };
-        init-project = final.writeScriptBin "init-project" ''
-          ${final.hsPkgs.cabal-install}/bin/cabal init --non-interactive
+        database-url = "db/database.db";
+        dblogin = final.writeScriptBin "dblogin" ''
+          ${final.sqlite}/bin/sqlite3 ${final.database-url}
         '';
       };
 
@@ -28,6 +29,7 @@
             zlib
             dbmate
             sqlite
+            dblogin
           ];
         in
         {
@@ -41,11 +43,10 @@
               treefmt
               nixpkgs-fmt
               hsPkgs.cabal-fmt
-              init-project
             ] ++ libs;
             shellHook = "export PS1='[$PWD]\n❄ '";
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath libs;
-            DATABASE_URL = "sqlite:db/database.db";
+            DATABASE_URL = "sqlite:${pkgs.database-url}";
           };
         });
     };

@@ -59,6 +59,7 @@ library
   build-depends:
     , aeson
     , base
+    , base16-bytestring
     , beam-core
     , beam-sqlite
     , bytestring
@@ -74,6 +75,7 @@ library
     , relude
     , resource-pool
     , sqlite-simple
+    , text
     , time
     , yaml
 

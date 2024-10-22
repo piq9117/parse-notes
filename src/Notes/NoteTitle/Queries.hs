@@ -16,11 +16,14 @@ import Database.Beam
     val_,
   )
 import Notes.DB (ManageDB (..))
+import Notes.Hash (hashContent)
 import Notes.Model (Database (..), database)
 import Notes.Models.NoteTitle (NoteTitleT (..))
 import Notes.Tracing
   ( ActiveSpan,
     MonadTracer,
+    TagVal (..),
+    addTag,
     childOf,
     spanOpts,
     traced_,
@@ -31,6 +34,7 @@ data NoteTitleInput = NoteTitleInput
   { title :: Text,
     hash :: Text
   }
+  deriving (Show)
 
 insertNoteTitles ::
   (ManageDB m, MonadTracer r m) =>
@@ -38,7 +42,8 @@ insertNoteTitles ::
   [NoteTitleInput] ->
   m ()
 insertNoteTitles span noteTitles =
-  traced_ (spanOpts "insert-note-titles" $ childOf span) $ \span ->
+  traced_ (spanOpts "insert-note-titles" $ childOf span) $ \span -> do
+    addTag span ("titles-length", IntT $ fromIntegral $ length $ noteTitles)
     runQuery span $
       runInsert $
         insert
@@ -47,7 +52,7 @@ insertNoteTitles span noteTitles =
               [ NoteTitle
                   { id = default_,
                     title = val_ noteTitle.title,
-                    hash = val_ noteTitle.hash,
+                    hash = val_ (hashContent noteTitle.hash),
                     createdAt = default_,
                     updatedAt = default_
                   }

@@ -7,7 +7,7 @@ module Notes.File (parseFile) where
 import Conduit ((.|))
 import Conduit qualified
 import Notes.DB (ManageDB)
-import Notes.Hash (hashContent)
+-- import Notes.Hash (hashContent)
 import Notes.NoteTitle.Queries (NoteTitleInput (..), insertNoteTitles)
 import Notes.Parser (Note (..), parseNotes)
 import Notes.Tracing
@@ -35,7 +35,7 @@ parseFile span filepath =
                   span
                   [ NoteTitleInput
                       { title = note.title,
-                        hash = hashContent note.title
+                        hash = note.title
                       }
                     | note <- notes
                   ]
