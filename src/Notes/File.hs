@@ -7,7 +7,6 @@ module Notes.File (parseFile) where
 import Conduit ((.|))
 import Conduit qualified
 import Notes.DB (ManageDB)
--- import Notes.Hash (hashContent)
 import Notes.NoteTitle.Queries (NoteTitleInput (..), insertNoteTitles)
 import Notes.Parser (Note (..), parseNotes)
 import Notes.Tracing

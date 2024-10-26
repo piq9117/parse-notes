@@ -10,10 +10,15 @@ where
 
 import Database.Beam
   ( default_,
-    insert,
     insertExpressions,
     runInsert,
     val_,
+    (<-.)
+  )
+import Database.Beam.Backend.SQL.BeamExtensions
+  ( conflictingFields,
+    insertOnConflict,
+    onConflictUpdateSet,
   )
 import Notes.DB (ManageDB (..))
 import Notes.Hash (hashContent)
@@ -46,7 +51,7 @@ insertNoteTitles span noteTitles =
     addTag span ("titles-length", IntT $ fromIntegral $ length $ noteTitles)
     runQuery span $
       runInsert $
-        insert
+        insertOnConflict
           database.noteTitles
           ( insertExpressions $
               [ NoteTitle
@@ -57,5 +62,13 @@ insertNoteTitles span noteTitles =
                     updatedAt = default_
                   }
                 | noteTitle <- noteTitles
+              ]
+          )
+          (conflictingFields $ \noteTitle -> noteTitle.hash)
+          (onConflictUpdateSet $ \current new -> 
+            mconcat
+              [ current.title <-. new.title,
+                current.hash <-. new.hash,
+                current.updatedAt <-. new.updatedAt
               ]
           )
