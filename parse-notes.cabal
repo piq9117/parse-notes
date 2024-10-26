@@ -72,6 +72,7 @@ library
     , opentracing-jaeger
     , opentracing-wai
     , parser-combinators
+    , pretty
     , relude
     , resource-pool
     , sqlite-simple
@@ -97,6 +98,7 @@ library
     Notes.Models.NoteTitle
     Notes.NoteTitle.Queries
     Notes.Parser
+    Notes.Render
     Notes.Tracing
 
 executable parse-notes

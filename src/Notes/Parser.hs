@@ -5,6 +5,7 @@ module Notes.Parser
   ( Note (..),
     NoteBody (..),
     NoteTitle (..),
+    FileContent(..),
     noteTitle,
     noteBody,
     noteBodyLine,
@@ -14,6 +15,8 @@ module Notes.Parser
     noteTitleParser,
     noteBodyIdParser,
     uuid,
+    fileParser,
+    fileNoteParser
   )
 where
 
@@ -23,20 +26,36 @@ import Text.Megaparsec
   ( Parsec,
     anySingle,
     anySingleBut,
-    eof,
     lookAhead,
     parseMaybe,
   )
 import Text.Megaparsec qualified
 import Text.Megaparsec.Char qualified
+import Text.PrettyPrint qualified
+import Text.PrettyPrint.HughesPJClass (Pretty (..))
 
 type Parser = Parsec () Text
+
+data FileContent 
+  = NoteContent Note
+  | Blankline
+  deriving stock (Eq, Show)
+
+fileParser :: Parser [FileContent]
+fileParser = many fileNoteParser
+
+fileNoteParser :: Parser FileContent
+fileNoteParser =
+  fmap NoteContent note <|> (fmap (const Blankline) Text.Megaparsec.Char.eol)
 
 data Note = Note
   { title :: !NoteTitle,
     body :: ![NoteBody]
   }
   deriving stock (Show, Eq)
+
+instance Pretty Note where
+  pPrint note = pPrint note
 
 parseNotes :: Text -> [Note]
 parseNotes content = fromMaybe [] (fmap catMaybes $ parseMaybe (many noteOrSkip) content)
@@ -62,6 +81,13 @@ note = do
 data NoteTitle = NoteTitle !Text
   deriving stock (Eq, Show)
 
+instance Pretty NoteTitle where
+  pPrint (NoteTitle title) =
+    Text.PrettyPrint.text "-- # Note ["
+      Text.PrettyPrint.<+> Text.PrettyPrint.text (toString title)
+      Text.PrettyPrint.<+> Text.PrettyPrint.text "]"
+      Text.PrettyPrint.<+> Text.PrettyPrint.char '\n'
+
 instance ToText NoteTitle where
   toText (NoteTitle title) = title
 
@@ -73,6 +99,19 @@ data NoteBody
 instance ToText NoteBody where
   toText (BodyContent content) = content
   toText (BodyId bodyId) = bodyId
+
+instance Pretty NoteBody where
+  pPrint (BodyContent content) =
+    Text.PrettyPrint.text "--"
+      Text.PrettyPrint.<+> Text.PrettyPrint.space
+      Text.PrettyPrint.<+> Text.PrettyPrint.text (toString content)
+      Text.PrettyPrint.<+> Text.PrettyPrint.char '\n'
+  pPrint (BodyId bodyId) =
+    Text.PrettyPrint.text "--"
+      Text.PrettyPrint.<+> Text.PrettyPrint.space
+      Text.PrettyPrint.<+> Text.PrettyPrint.text "id:"
+      Text.PrettyPrint.<+> Text.PrettyPrint.text (toString bodyId)
+      Text.PrettyPrint.<+> Text.PrettyPrint.char '\n'
 
 noteTitleParser :: Parser NoteTitle
 noteTitleParser = fmap NoteTitle noteTitle
@@ -101,7 +140,6 @@ noteTitle = do
   void (Text.Megaparsec.Char.char '[')
   title <- fmap toText $ many (anySingleBut ']')
   void (Text.Megaparsec.Char.char ']')
-  noteBodyLineEnd
   pure title
 
 noteBody :: Parser [Text]
@@ -112,14 +150,12 @@ noteBody = do
 noteBodyLine :: Parser Text
 noteBodyLine = do
   commentStart
-  content <- fmap toText $ many (anySingleBut '\n')
-  noteBodyLineEnd
-  pure content
+  fmap toText $ many (anySingleBut '\n')
 
-noteBodyLineEnd :: Parser ()
-noteBodyLineEnd =
-  void Text.Megaparsec.Char.newline
-    <|> eof
+-- noteBodyLineEnd :: Parser ()
+-- noteBodyLineEnd =
+--   void Text.Megaparsec.Char.newline
+--     <|> eof
 
 commentStart :: Parser ()
 commentStart = do

@@ -64,6 +64,10 @@ parser =
         `shouldBe` (Right $ Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
 
     it "parseNotes" $ do
+
+      parse Notes.Parser.fileNoteParser "test" "-- # Note [This is this is the title of the note]\n-- First line of the note\n-- Second line of the note\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197\n\n\n"
+        `shouldBe` (Right Notes.Parser.Blankline)
+
       (parseNotes "-- # Note [This is this is the title of the note]\n-- First line of the note\n-- Second line of the note\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
         `shouldBe` [ Note
                        { title = Notes.Parser.NoteTitle "This is this is the title of the note",
@@ -74,6 +78,8 @@ parser =
                            ]
                        }
                    ]
+
+
 
 test_testTree :: IO TestTree
 test_testTree =
