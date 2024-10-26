@@ -5,18 +5,19 @@ module Notes.Parser
   ( Note (..),
     NoteBody (..),
     NoteTitle (..),
-    FileContent(..),
+    FileContent (..),
     noteTitle,
     noteBody,
     noteBodyLine,
-    note,
+    noteParser,
     parseNotes,
     noteBodyLineParser,
+    noteBodyParser,
     noteTitleParser,
     noteBodyIdParser,
     uuid,
     fileParser,
-    fileNoteParser
+    fileNoteParser,
   )
 where
 
@@ -36,7 +37,7 @@ import Text.PrettyPrint.HughesPJClass (Pretty (..))
 
 type Parser = Parsec () Text
 
-data FileContent 
+data FileContent
   = NoteContent Note
   | Blankline
   deriving stock (Eq, Show)
@@ -46,12 +47,15 @@ fileParser = many fileNoteParser
 
 fileNoteParser :: Parser FileContent
 fileNoteParser =
-  fmap NoteContent note <|> (fmap (const Blankline) Text.Megaparsec.Char.eol)
+  fmap NoteContent noteParser <|> (fmap (const Blankline) Text.Megaparsec.Char.eol)
 
 data Note = Note
   { title :: !NoteTitle,
     body :: ![NoteBody]
   }
+  deriving stock (Show, Eq)
+
+data NonNote = NonNote !Text
   deriving stock (Show, Eq)
 
 instance Pretty Note where
@@ -62,16 +66,17 @@ parseNotes content = fromMaybe [] (fmap catMaybes $ parseMaybe (many noteOrSkip)
 
 noteOrSkip :: Parser (Maybe Note)
 noteOrSkip =
-  (Just <$> note) <|> (skipNonNoteContent $> Nothing)
+  (Just <$> noteParser) <|> (skipNonNoteContent $> Nothing)
 
 skipNonNoteContent :: Parser ()
 skipNonNoteContent = do
   void (manyTill anySingle (lookAhead commentStart))
 
-note :: Parser Note
-note = do
+noteParser :: Parser Note
+noteParser = do
   title <- noteTitleParser
   body <- noteBodyParser
+  noteBodyLineEnd
   pure
     Note
       { title,
@@ -82,11 +87,12 @@ data NoteTitle = NoteTitle !Text
   deriving stock (Eq, Show)
 
 instance Pretty NoteTitle where
+  -- render:
+  -- # Note [This is a title]
   pPrint (NoteTitle title) =
     Text.PrettyPrint.text "-- # Note ["
       Text.PrettyPrint.<+> Text.PrettyPrint.text (toString title)
       Text.PrettyPrint.<+> Text.PrettyPrint.text "]"
-      Text.PrettyPrint.<+> Text.PrettyPrint.char '\n'
 
 instance ToText NoteTitle where
   toText (NoteTitle title) = title
@@ -101,17 +107,19 @@ instance ToText NoteBody where
   toText (BodyId bodyId) = bodyId
 
 instance Pretty NoteBody where
+  -- render:
+  -- This is the body
   pPrint (BodyContent content) =
     Text.PrettyPrint.text "--"
       Text.PrettyPrint.<+> Text.PrettyPrint.space
       Text.PrettyPrint.<+> Text.PrettyPrint.text (toString content)
-      Text.PrettyPrint.<+> Text.PrettyPrint.char '\n'
+  -- render:
+  -- id:b67941d1-222b-4cfa-ba37-d02973aa2141
   pPrint (BodyId bodyId) =
     Text.PrettyPrint.text "--"
       Text.PrettyPrint.<+> Text.PrettyPrint.space
       Text.PrettyPrint.<+> Text.PrettyPrint.text "id:"
       Text.PrettyPrint.<+> Text.PrettyPrint.text (toString bodyId)
-      Text.PrettyPrint.<+> Text.PrettyPrint.char '\n'
 
 noteTitleParser :: Parser NoteTitle
 noteTitleParser = fmap NoteTitle noteTitle
@@ -121,7 +129,8 @@ noteBodyParser = many noteBodyLineParser
 
 noteBodyLineParser :: Parser NoteBody
 noteBodyLineParser =
-  Text.Megaparsec.try noteBodyIdParser <|> fmap BodyContent noteBodyLine
+  (Text.Megaparsec.try noteBodyIdParser <|> fmap BodyContent noteBodyLine)
+    <* (void Text.Megaparsec.Char.eol <|> Text.Megaparsec.eof)
 
 noteBodyIdParser :: Parser NoteBody
 noteBodyIdParser = do
@@ -140,11 +149,13 @@ noteTitle = do
   void (Text.Megaparsec.Char.char '[')
   title <- fmap toText $ many (anySingleBut ']')
   void (Text.Megaparsec.Char.char ']')
+  noteBodyLineEnd
   pure title
 
 noteBody :: Parser [Text]
-noteBody = do
-  lines <- many noteBodyLine
+noteBody = many $ do
+  lines <- noteBodyLine
+  noteBodyLineEnd
   pure lines
 
 noteBodyLine :: Parser Text
@@ -152,10 +163,10 @@ noteBodyLine = do
   commentStart
   fmap toText $ many (anySingleBut '\n')
 
--- noteBodyLineEnd :: Parser ()
--- noteBodyLineEnd =
---   void Text.Megaparsec.Char.newline
---     <|> eof
+noteBodyLineEnd :: Parser ()
+noteBodyLineEnd =
+  void Text.Megaparsec.Char.newline
+    <|> Text.Megaparsec.eof
 
 commentStart :: Parser ()
 commentStart = do
