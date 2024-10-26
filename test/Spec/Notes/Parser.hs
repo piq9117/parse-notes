@@ -1,3 +1,4 @@
+{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Spec.Notes.Parser where
@@ -10,6 +11,7 @@ import Notes.Parser
     noteTitle,
     parseNotes,
   )
+import Notes.Parser qualified
 import Test.Hspec (Spec, describe, it, shouldBe)
 import Test.Tasty (TestTree)
 import Test.Tasty.Hspec (testSpec)
@@ -37,19 +39,30 @@ parser =
       (parse note "test" "-- # Note [This is this is the title of the note]\n-- First line of the note\n-- Second line of the note")
         `shouldBe` ( Right
                        Note
-                         { title = "This is this is the title of the note",
+                         { title = Notes.Parser.NoteTitle "This is this is the title of the note",
                            body =
-                             [ "First line of the note",
-                               "Second line of the note"
+                             [ Notes.Parser.BodyContent "First line of the note",
+                               Notes.Parser.BodyContent "Second line of the note"
                              ]
                          }
                    )
 
+    it "note body parser" $
+      (parse Notes.Parser.noteBodyLineParser "test" "-- this is a comment")
+        `shouldBe` (Right $ Notes.Parser.BodyContent "this is a comment")
+
+    it "note title parser" $
+      (parse Notes.Parser.noteTitleParser "test" "-- # Note [This is a title]")
+        `shouldBe` (Right $ Notes.Parser.NoteTitle "This is a title")
+
     it "parseNotes" $ do
       (parseNotes "-- # Note [This is this is the title of the note]\n-- First line of the note\n-- Second line of the note")
         `shouldBe` [ Note
-                       { title = "This is this is the title of the note",
-                         body = ["First line of the note", "Second line of the note"]
+                       { title = Notes.Parser.NoteTitle "This is this is the title of the note",
+                         body =
+                           [ Notes.Parser.BodyContent "First line of the note",
+                             Notes.Parser.BodyContent "Second line of the note"
+                           ]
                        }
                    ]
 

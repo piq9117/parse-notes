@@ -2,12 +2,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Notes.Parser
-  ( noteTitle,
+  ( Note (..),
+    NoteBody (..),
+    NoteTitle (..),
+    noteTitle,
     noteBody,
     noteBodyLine,
     note,
-    Note (..),
     parseNotes,
+    noteBodyLineParser,
+    noteTitleParser,
   )
 where
 
@@ -25,8 +29,8 @@ import Text.Megaparsec.Char qualified
 type Parser = Parsec () Text
 
 data Note = Note
-  { title :: !Text,
-    body :: ![Text]
+  { title :: !NoteTitle,
+    body :: ![NoteBody]
   }
   deriving stock (Show, Eq)
 
@@ -43,13 +47,37 @@ skipNonNoteContent = do
 
 note :: Parser Note
 note = do
-  title <- noteTitle
-  body <- noteBody
+  title <- noteTitleParser
+  body <- noteBodyParser
   pure
     Note
       { title,
         body
       }
+
+data NoteTitle = NoteTitle !Text
+  deriving stock (Eq, Show)
+
+instance ToText NoteTitle where
+  toText (NoteTitle title) = title
+
+data NoteBody
+  = BodyContent !Text
+  | BodyId !Text
+  deriving stock (Eq, Show)
+
+instance ToText NoteBody where
+  toText (BodyContent content) = content
+  toText (BodyId bodyId) = bodyId
+
+noteTitleParser :: Parser NoteTitle
+noteTitleParser = fmap NoteTitle noteTitle
+
+noteBodyParser :: Parser [NoteBody]
+noteBodyParser = many noteBodyLineParser
+
+noteBodyLineParser :: Parser NoteBody
+noteBodyLineParser = fmap BodyContent noteBodyLine
 
 noteTitle :: Parser Text
 noteTitle = do

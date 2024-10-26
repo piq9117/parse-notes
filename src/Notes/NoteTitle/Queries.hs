@@ -13,7 +13,7 @@ import Database.Beam
     insertExpressions,
     runInsert,
     val_,
-    (<-.)
+    (<-.),
   )
 import Database.Beam.Backend.SQL.BeamExtensions
   ( conflictingFields,
@@ -65,10 +65,10 @@ insertNoteTitles span noteTitles =
               ]
           )
           (conflictingFields $ \noteTitle -> noteTitle.hash)
-          (onConflictUpdateSet $ \current new -> 
-            mconcat
-              [ current.title <-. new.title,
-                current.hash <-. new.hash,
-                current.updatedAt <-. new.updatedAt
-              ]
+          ( onConflictUpdateSet $ \current new ->
+              mconcat
+                [ current.title <-. new.title,
+                  current.hash <-. new.hash,
+                  current.updatedAt <-. new.updatedAt
+                ]
           )

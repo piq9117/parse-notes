@@ -33,8 +33,8 @@ parseFile span filepath =
                 insertNoteTitles
                   span
                   [ NoteTitleInput
-                      { title = note.title,
-                        hash = note.title
+                      { title = toText note.title,
+                        hash = toText note.title
                       }
                     | note <- notes
                   ]
