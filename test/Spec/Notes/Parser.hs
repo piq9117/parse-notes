@@ -55,13 +55,22 @@ parser =
       (parse Notes.Parser.noteTitleParser "test" "-- # Note [This is a title]")
         `shouldBe` (Right $ Notes.Parser.NoteTitle "This is a title")
 
+    it "uuid" $
+      (parse Notes.Parser.uuid "test" "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
+        `shouldBe` (Right "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
+
+    it "uuid body line" $
+      (parse Notes.Parser.noteBodyIdParser "test" "-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
+        `shouldBe` (Right $ Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
+
     it "parseNotes" $ do
-      (parseNotes "-- # Note [This is this is the title of the note]\n-- First line of the note\n-- Second line of the note")
+      (parseNotes "-- # Note [This is this is the title of the note]\n-- First line of the note\n-- Second line of the note\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
         `shouldBe` [ Note
                        { title = Notes.Parser.NoteTitle "This is this is the title of the note",
                          body =
                            [ Notes.Parser.BodyContent "First line of the note",
-                             Notes.Parser.BodyContent "Second line of the note"
+                             Notes.Parser.BodyContent "Second line of the note",
+                             Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197"
                            ]
                        }
                    ]

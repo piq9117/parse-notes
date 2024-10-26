@@ -12,10 +12,13 @@ module Notes.Parser
     parseNotes,
     noteBodyLineParser,
     noteTitleParser,
+    noteBodyIdParser,
+    uuid,
   )
 where
 
-import Control.Applicative.Combinators (manyTill)
+import Control.Applicative.Combinators (count, manyTill)
+import Data.UUID qualified
 import Text.Megaparsec
   ( Parsec,
     anySingle,
@@ -24,6 +27,7 @@ import Text.Megaparsec
     lookAhead,
     parseMaybe,
   )
+import Text.Megaparsec qualified
 import Text.Megaparsec.Char qualified
 
 type Parser = Parsec () Text
@@ -77,7 +81,14 @@ noteBodyParser :: Parser [NoteBody]
 noteBodyParser = many noteBodyLineParser
 
 noteBodyLineParser :: Parser NoteBody
-noteBodyLineParser = fmap BodyContent noteBodyLine
+noteBodyLineParser =
+  Text.Megaparsec.try noteBodyIdParser <|> fmap BodyContent noteBodyLine
+
+noteBodyIdParser :: Parser NoteBody
+noteBodyIdParser = do
+  commentStart
+  line <- uuidBodyLine
+  pure (BodyId line)
 
 noteTitle :: Parser Text
 noteTitle = do
@@ -115,3 +126,16 @@ commentStart = do
   void (Text.Megaparsec.Char.string "--")
   Text.Megaparsec.Char.space
   pure ()
+
+uuidBodyLine :: Parser Text
+uuidBodyLine = do
+  void (Text.Megaparsec.Char.string "id:")
+  uuid
+
+uuid :: Parser Text
+uuid = do
+  uuidContent <-
+    (count 36 (Text.Megaparsec.Char.alphaNumChar <|> Text.Megaparsec.Char.char '-'))
+  case Data.UUID.fromText (toText uuidContent) of
+    Nothing -> fail "Invalid UUID format"
+    Just uuidContent -> pure $ Data.UUID.toText uuidContent
