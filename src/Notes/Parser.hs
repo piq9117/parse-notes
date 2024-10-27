@@ -6,6 +6,7 @@ module Notes.Parser
     NoteBody (..),
     NoteTitle (..),
     FileContent (..),
+    NonNote (..),
     noteTitle,
     noteBody,
     noteBodyLine,
@@ -19,6 +20,8 @@ module Notes.Parser
     fileParser,
     fileNoteParser,
     blanklineParser,
+    nonNotesParser,
+    nonNoteLine,
   )
 where
 
@@ -40,6 +43,7 @@ type Parser = Parsec () Text
 
 data FileContent
   = NoteContent Note
+  | NonNoteContent ![NonNote]
   | Blankline
   deriving stock (Eq, Show)
 
@@ -47,6 +51,8 @@ instance Pretty FileContent where
   pPrint (NoteContent note) = pPrint note
   pPrint Blankline =
     Text.PrettyPrint.text "\n"
+  pPrint (NonNoteContent nonNotes) =
+    Text.PrettyPrint.cat (fmap pPrint nonNotes)
 
 fileParser :: Parser [FileContent]
 fileParser = many fileNoteParser
@@ -62,9 +68,6 @@ data Note = Note
   { title :: !NoteTitle,
     body :: ![NoteBody]
   }
-  deriving stock (Show, Eq)
-
-data NonNote = NonNote !Text
   deriving stock (Show, Eq)
 
 instance Pretty Note where
@@ -193,3 +196,20 @@ uuid = do
   case Data.UUID.fromText (toText uuidContent) of
     Nothing -> fail "Invalid UUID format"
     Just uuidContent -> pure $ Data.UUID.toText uuidContent
+
+data NonNote = NonNote !Text
+  deriving stock (Show, Eq)
+
+instance Pretty NonNote where
+  pPrint (NonNote nonNote) =
+    Text.PrettyPrint.text (toString nonNote)
+      Text.PrettyPrint.<+> Text.PrettyPrint.text "\n"
+
+nonNotesParser :: Parser [NonNote]
+nonNotesParser = many $ fmap NonNote nonNoteLine
+
+nonNoteLine :: Parser Text
+nonNoteLine = do
+  line <- Text.Megaparsec.takeWhile1P Nothing (/= '\n')
+  noteBodyLineEnd
+  pure line

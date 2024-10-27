@@ -39,6 +39,18 @@ smolParser =
       (parse Notes.Parser.uuid "test" "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
         `shouldBe` (Right "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
 
+    it "nonNoteLine" $
+      parse Notes.Parser.nonNoteLine "test" "this is not a note"
+        `shouldBe` (Right "this is not a note")
+
+    it "nonNotesParser" $
+      parse Notes.Parser.nonNotesParser "test" "this is not a note\nthis is another line of non note"
+        `shouldBe` ( Right
+                       [ Notes.Parser.NonNote "this is not a note",
+                         Notes.Parser.NonNote "this is another line of non note"
+                       ]
+                   )
+
 parser :: Spec
 parser =
   describe "parser" $ do
