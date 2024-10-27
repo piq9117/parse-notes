@@ -18,6 +18,7 @@ module Notes.Parser
     uuid,
     fileParser,
     fileNoteParser,
+    blanklineParser,
   )
 where
 
@@ -47,7 +48,10 @@ fileParser = many fileNoteParser
 
 fileNoteParser :: Parser FileContent
 fileNoteParser =
-  fmap NoteContent noteParser <|> (fmap (const Blankline) Text.Megaparsec.Char.eol)
+  fmap NoteContent noteParser <|> blanklineParser
+
+blanklineParser :: Parser FileContent
+blanklineParser = fmap (const Blankline) Text.Megaparsec.Char.eol
 
 data Note = Note
   { title :: !NoteTitle,
@@ -125,12 +129,11 @@ noteTitleParser :: Parser NoteTitle
 noteTitleParser = fmap NoteTitle noteTitle
 
 noteBodyParser :: Parser [NoteBody]
-noteBodyParser = many noteBodyLineParser
+noteBodyParser = (many noteBodyLineParser)
 
 noteBodyLineParser :: Parser NoteBody
 noteBodyLineParser =
   (Text.Megaparsec.try noteBodyIdParser <|> fmap BodyContent noteBodyLine)
-    <* (void Text.Megaparsec.Char.eol <|> Text.Megaparsec.eof)
 
 noteBodyIdParser :: Parser NoteBody
 noteBodyIdParser = do
@@ -153,15 +156,14 @@ noteTitle = do
   pure title
 
 noteBody :: Parser [Text]
-noteBody = many $ do
-  lines <- noteBodyLine
-  noteBodyLineEnd
-  pure lines
+noteBody = many noteBodyLine
 
 noteBodyLine :: Parser Text
 noteBodyLine = do
   commentStart
-  fmap toText $ many (anySingleBut '\n')
+  line <- fmap toText $ many (anySingleBut '\n')
+  noteBodyLineEnd
+  pure line
 
 noteBodyLineEnd :: Parser ()
 noteBodyLineEnd =

@@ -15,6 +15,7 @@ import Test.Hspec (Spec, describe, it, shouldBe)
 import Test.Tasty (TestTree)
 import Test.Tasty.Hspec (testSpec)
 import Text.Megaparsec (parse)
+import Text.Megaparsec qualified
 
 smolParser :: Spec
 smolParser =
@@ -41,21 +42,15 @@ smolParser =
 parser :: Spec
 parser =
   describe "parser" $ do
-    it "noteParser" $ do
-      (parse Notes.Parser.noteParser "test" "-- # Note [This is this is the title of the note]\n-- First line of the note\n-- Second line of the note")
-        `shouldBe` ( Right
-                       Note
-                         { title = Notes.Parser.NoteTitle "This is this is the title of the note",
-                           body =
-                             [ Notes.Parser.BodyContent "First line of the note",
-                               Notes.Parser.BodyContent "Second line of the note"
-                             ]
-                         }
-                   )
+    it "blanklineParser" $ do
+      parse Notes.Parser.blanklineParser "test" "\n"
+        `shouldBe` (Right Notes.Parser.Blankline)
 
-    it "noteBodyLineParser, noteBodyParser" $ do
-      (parse Notes.Parser.noteBodyLineParser "test" "-- this is a comment")
+    it "noteBodyLineParser" $ do
+      (parse Notes.Parser.noteBodyLineParser "test" "-- this is a comment\n")
         `shouldBe` (Right $ Notes.Parser.BodyContent "this is a comment")
+
+    it "noteBodyParser" $
       (parse Notes.Parser.noteBodyParser "test" "-- this is a comment\n-- this is another comment")
         `shouldBe` ( Right
                        [ Notes.Parser.BodyContent "this is a comment",
@@ -70,6 +65,18 @@ parser =
     it "noteBodyIdParser" $
       (parse Notes.Parser.noteBodyIdParser "test" "-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
         `shouldBe` (Right $ Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
+
+    it "noteParser" $ do
+      (parse Notes.Parser.noteParser "test" "-- # Note [This is this is the title of the note]\n-- First line of the note\n-- Second line of the note")
+        `shouldBe` ( Right
+                       Note
+                         { title = Notes.Parser.NoteTitle "This is this is the title of the note",
+                           body =
+                             [ Notes.Parser.BodyContent "First line of the note",
+                               Notes.Parser.BodyContent "Second line of the note"
+                             ]
+                         }
+                   )
 
     it "fileNoteParser" $ do
       parse Notes.Parser.fileNoteParser "test" "-- # Note [This is the title of the note]\n-- First line of the note\n-- Second line of the note\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197\n\n\n"
@@ -86,17 +93,26 @@ parser =
                          )
                    )
 
---
---   (parseNotes "-- # Note [This is this is the title of the note]\n-- First line of the note\n-- Second line of the note\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
---     `shouldBe` [ Note
---                    { title = Notes.Parser.NoteTitle "This is this is the title of the note",
---                      body =
---                        [ Notes.Parser.BodyContent "First line of the note",
---                          Notes.Parser.BodyContent "Second line of the note",
---                          Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197"
---                        ]
---                    }
---                ]
+    it "fileParser" $ do
+      parse
+        Notes.Parser.fileParser
+        "test"
+        "-- # Note [This is the title of the note]\n-- First line of the note\n-- Second line of the note\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197\n\n\n"
+        `shouldBe` ( Right
+                       [ Notes.Parser.NoteContent
+                           ( Note
+                               { title = Notes.Parser.NoteTitle "This is the title of the note",
+                                 body =
+                                   [ Notes.Parser.BodyContent "First line of the note",
+                                     Notes.Parser.BodyContent "Second line of the note",
+                                     Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197"
+                                   ]
+                               }
+                           ),
+                         Notes.Parser.Blankline,
+                         Notes.Parser.Blankline
+                       ]
+                   )
 
 test_testTree :: IO TestTree
 test_testTree =
