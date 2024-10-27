@@ -43,6 +43,11 @@ data FileContent
   | Blankline
   deriving stock (Eq, Show)
 
+instance Pretty FileContent where
+  pPrint (NoteContent note) = pPrint note
+  pPrint Blankline =
+    Text.PrettyPrint.text "\n"
+
 fileParser :: Parser [FileContent]
 fileParser = many fileNoteParser
 
