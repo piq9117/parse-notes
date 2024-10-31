@@ -125,6 +125,12 @@ parser =
                          Notes.Parser.Blankline
                        ]
                    )
+    it "noteNoteLine & noteBodyLine" $
+      parse 
+        (many $ Notes.Parser.nonNoteLine <|> Notes.Parser.noteBodyLine) 
+        "test" 
+        "this is not a comment\n-- this is a comment"
+        `shouldBe` (Right["this is not a comment", "this is a comment"])  
 
 test_testTree :: IO TestTree
 test_testTree =

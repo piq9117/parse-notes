@@ -210,6 +210,7 @@ nonNotesParser = many $ fmap NonNote nonNoteLine
 
 nonNoteLine :: Parser Text
 nonNoteLine = do
+  Text.Megaparsec.notFollowedBy commentStart
   line <- Text.Megaparsec.takeWhile1P Nothing (/= '\n')
   noteBodyLineEnd
   pure line
