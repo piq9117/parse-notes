@@ -11,7 +11,7 @@ import Notes.Parser
     parseNotes,
   )
 import Notes.Parser qualified
-import Test.Hspec (Spec, describe, it, shouldBe)
+import Test.Hspec (Spec, describe, it, shouldBe, xit)
 import Test.Tasty (TestTree)
 import Test.Tasty.Hspec (testSpec)
 import Text.Megaparsec (parse)
@@ -43,8 +43,8 @@ smolParser =
       parse Notes.Parser.nonNoteLine "test" "this is not a note"
         `shouldBe` (Right "this is not a note")
 
-    it "nonNotesParser" $
-      parse Notes.Parser.nonNotesParser "test" "this is not a note\nthis is another line of non note"
+    it "nonNoteParser" $
+      parse (many Notes.Parser.nonNoteParser) "test" "this is not a note\nthis is another line of non note"
         `shouldBe` ( Right
                        [ Notes.Parser.NonNote "this is not a note",
                          Notes.Parser.NonNote "this is another line of non note"
@@ -126,11 +126,11 @@ parser =
                        ]
                    )
     it "noteNoteLine & noteBodyLine" $
-      parse 
-        (many $ Notes.Parser.nonNoteLine <|> Notes.Parser.noteBodyLine) 
-        "test" 
+      parse
+        (many $ Notes.Parser.nonNoteLine <|> Notes.Parser.noteBodyLine)
+        "test"
         "this is not a comment\n-- this is a comment"
-        `shouldBe` (Right["this is not a comment", "this is a comment"])  
+        `shouldBe` (Right ["this is not a comment", "this is a comment"])
 
 test_testTree :: IO TestTree
 test_testTree =

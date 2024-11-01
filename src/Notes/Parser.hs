@@ -20,7 +20,7 @@ module Notes.Parser
     fileParser,
     fileNoteParser,
     blanklineParser,
-    nonNotesParser,
+    nonNoteParser,
     nonNoteLine,
   )
 where
@@ -43,7 +43,7 @@ type Parser = Parsec () Text
 
 data FileContent
   = NoteContent Note
-  | NonNoteContent ![NonNote]
+  | NonNoteContent !NonNote
   | Blankline
   deriving stock (Eq, Show)
 
@@ -52,14 +52,18 @@ instance Pretty FileContent where
   pPrint Blankline =
     Text.PrettyPrint.text "\n"
   pPrint (NonNoteContent nonNotes) =
-    Text.PrettyPrint.cat (fmap pPrint nonNotes)
+    pPrint nonNotes
+
+-- Text.PrettyPrint.cat (fmap pPrint nonNotes)
 
 fileParser :: Parser [FileContent]
 fileParser = many fileNoteParser
 
 fileNoteParser :: Parser FileContent
 fileNoteParser =
-  fmap NoteContent noteParser <|> blanklineParser
+  fmap NoteContent noteParser
+    <|> (fmap NonNoteContent nonNoteParser)
+    <|> blanklineParser
 
 blanklineParser :: Parser FileContent
 blanklineParser = fmap (const Blankline) Text.Megaparsec.Char.eol
@@ -205,8 +209,8 @@ instance Pretty NonNote where
     Text.PrettyPrint.text (toString nonNote)
       Text.PrettyPrint.<+> Text.PrettyPrint.text "\n"
 
-nonNotesParser :: Parser [NonNote]
-nonNotesParser = many $ fmap NonNote nonNoteLine
+nonNoteParser :: Parser NonNote
+nonNoteParser = fmap NonNote nonNoteLine
 
 nonNoteLine :: Parser Text
 nonNoteLine = do
