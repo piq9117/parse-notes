@@ -151,4 +151,6 @@ test-suite parse-notes-test
     relude (Relude as Prelude),
     relude
 
-  other-modules:  Spec.Notes.Parser
+  other-modules:
+    Spec.Notes.Parser
+    Spec.Notes.Render

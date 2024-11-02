@@ -1,4 +1,5 @@
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Notes.Parser
@@ -54,8 +55,6 @@ instance Pretty FileContent where
   pPrint (NonNoteContent nonNotes) =
     pPrint nonNotes
 
--- Text.PrettyPrint.cat (fmap pPrint nonNotes)
-
 fileParser :: Parser [FileContent]
 fileParser = many fileNoteParser
 
@@ -75,7 +74,9 @@ data Note = Note
   deriving stock (Show, Eq)
 
 instance Pretty Note where
-  pPrint note = pPrint note
+  pPrint note =
+    pPrint note.title
+      Text.PrettyPrint.<> (Text.PrettyPrint.hcat $ fmap pPrint note.body)
 
 parseNotes :: Text -> [Note]
 parseNotes content = fromMaybe [] (fmap catMaybes $ parseMaybe (many noteOrSkip) content)
@@ -107,8 +108,9 @@ instance Pretty NoteTitle where
   -- # Note [This is a title]
   pPrint (NoteTitle title) =
     Text.PrettyPrint.text "-- # Note ["
-      Text.PrettyPrint.<+> Text.PrettyPrint.text (toString title)
-      Text.PrettyPrint.<+> Text.PrettyPrint.text "]"
+      Text.PrettyPrint.<> Text.PrettyPrint.text (toString title)
+      Text.PrettyPrint.<> Text.PrettyPrint.text "]"
+      Text.PrettyPrint.<> Text.PrettyPrint.text "\n"
 
 instance ToText NoteTitle where
   toText (NoteTitle title) = title
@@ -127,15 +129,17 @@ instance Pretty NoteBody where
   -- This is the body
   pPrint (BodyContent content) =
     Text.PrettyPrint.text "--"
-      Text.PrettyPrint.<+> Text.PrettyPrint.space
-      Text.PrettyPrint.<+> Text.PrettyPrint.text (toString content)
+      Text.PrettyPrint.<> Text.PrettyPrint.space
+      Text.PrettyPrint.<> Text.PrettyPrint.text (toString content)
+      Text.PrettyPrint.<> Text.PrettyPrint.text "\n"
   -- render:
   -- id:b67941d1-222b-4cfa-ba37-d02973aa2141
   pPrint (BodyId bodyId) =
     Text.PrettyPrint.text "--"
-      Text.PrettyPrint.<+> Text.PrettyPrint.space
-      Text.PrettyPrint.<+> Text.PrettyPrint.text "id:"
-      Text.PrettyPrint.<+> Text.PrettyPrint.text (toString bodyId)
+      Text.PrettyPrint.<> Text.PrettyPrint.space
+      Text.PrettyPrint.<> Text.PrettyPrint.text "id:"
+      Text.PrettyPrint.<> Text.PrettyPrint.text (toString bodyId)
+      Text.PrettyPrint.<> Text.PrettyPrint.text "\n"
 
 noteTitleParser :: Parser NoteTitle
 noteTitleParser = fmap NoteTitle noteTitle
@@ -207,7 +211,7 @@ data NonNote = NonNote !Text
 instance Pretty NonNote where
   pPrint (NonNote nonNote) =
     Text.PrettyPrint.text (toString nonNote)
-      Text.PrettyPrint.<+> Text.PrettyPrint.text "\n"
+      Text.PrettyPrint.<> Text.PrettyPrint.text "\n"
 
 nonNoteParser :: Parser NonNote
 nonNoteParser = fmap NonNote nonNoteLine
