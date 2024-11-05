@@ -1,4 +1,4 @@
--- # Note [This is the title of the note]
--- First line of the note
--- Second line of the note
--- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197
+-- # Note [This is the title]
+-- body of the note
+
+data NotANote = NotANote
