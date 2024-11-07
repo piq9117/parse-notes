@@ -6,10 +6,8 @@ module Notes.File (parseFile) where
 
 import Conduit ((.|))
 import Conduit qualified
-import Data.UUID.V4 qualified
 import Notes.DB (ManageDB)
 -- import Notes.NoteTitle.Queries (NoteTitleInput (..), insertNoteTitles)
-import Notes.Parser qualified
 import Notes.Tracing
   ( ActiveSpan,
     MonadTracer,
@@ -30,14 +28,6 @@ parseFile span filepath =
         .| Conduit.mapM_C
           ( \notes -> do
               print notes
-              parsedNotes <-
-                Notes.Parser.parseFile
-                  span
-                  (decodeUtf8 notes)
-                  Notes.Parser.GenerateBodyId
-                    { Notes.Parser.generateBodyId = \_span -> liftIO Data.UUID.V4.nextRandom
-                    }
-              print parsedNotes
               -- lift $
               --   insertNoteTitles
               --     span
