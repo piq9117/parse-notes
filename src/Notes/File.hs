@@ -7,6 +7,7 @@ module Notes.File (parseFile) where
 import Conduit ((.|))
 import Conduit qualified
 import Notes.DB (ManageDB)
+import Notes.Parser qualified
 -- import Notes.NoteTitle.Queries (NoteTitleInput (..), insertNoteTitles)
 import Notes.Tracing
   ( ActiveSpan,
@@ -25,6 +26,7 @@ parseFile span filepath =
   traced_ (spanOpts "parse-file" $ childOf span) $ \_span ->
     Conduit.runConduitRes $
       Conduit.sourceFile filepath
+        .| Conduit.mapC (Notes.Parser.parseFile <<< decodeUtf8)
         .| Conduit.mapM_C
           ( \notes -> do
               print notes

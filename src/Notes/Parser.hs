@@ -9,6 +9,7 @@ module Notes.Parser
     FileContent (..),
     NonNote (..),
     BodyId (..),
+    parseFile,
     noteTitle,
     noteBody,
     noteBodyLine,
@@ -53,6 +54,9 @@ instance Pretty FileContent where
     Text.PrettyPrint.text "\n"
   pPrint (NonNoteContent nonNotes) =
     pPrint nonNotes
+
+parseFile :: Text -> [FileContent]
+parseFile content = fromMaybe [] (Text.Megaparsec.parseMaybe fileParser content)
 
 fileParser :: Parser [FileContent]
 fileParser = many fileNoteParser
