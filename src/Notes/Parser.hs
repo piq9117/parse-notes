@@ -9,7 +9,9 @@ module Notes.Parser
     FileContent (..),
     NonNote (..),
     BodyId (..),
+    GenerateBodyId (..),
     parseFile,
+    parseFileM,
     noteTitle,
     noteBody,
     noteBodyLine,
@@ -30,6 +32,7 @@ where
 
 import Control.Applicative.Combinators (between, count, manyTill)
 import Data.UUID qualified
+import Notes.Tracing (ActiveSpan, MonadTracer, childOf, spanOpts, traced_)
 import Text.Megaparsec
   ( Parsec,
     anySingleBut,
@@ -55,11 +58,37 @@ instance Pretty FileContent where
   pPrint (NonNoteContent nonNotes) =
     pPrint nonNotes
 
+newtype GenerateBodyId m = GenerateBodyId
+  { generate :: ActiveSpan -> m Data.UUID.UUID
+  }
+
 parseFile :: Text -> [FileContent]
 parseFile content = fromMaybe [] (Text.Megaparsec.parseMaybe fileParser content)
 
+parseFileM :: (MonadTracer r m) => ActiveSpan -> GenerateBodyId m -> Text -> m [FileContent]
+parseFileM span generateBodyId content =
+  traced_ (spanOpts "parse-file-m" $ childOf span) $ \span -> do
+    fileParser <- fileParserM span generateBodyId
+    pure $ fromMaybe [] (Text.Megaparsec.parseMaybe fileParser content)
+
+fileParserM :: (MonadTracer r m) => ActiveSpan -> GenerateBodyId m -> m (Parser [FileContent])
+fileParserM span generateBodyId =
+  traced_ (spanOpts "file-parser-m" $ childOf span) $ \span -> do
+    fileNoteParser <- fileNoteParserM span generateBodyId
+    pure $
+      many fileNoteParser
+
 fileParser :: Parser [FileContent]
 fileParser = many fileNoteParser
+
+fileNoteParserM :: (MonadTracer r m) => ActiveSpan -> GenerateBodyId m -> m (Parser FileContent)
+fileNoteParserM span generateBodyId =
+  traced_ (spanOpts "file-note-parser-m" $ childOf span) $ \span -> do
+    noteParser <- noteParserM span generateBodyId
+    pure $ do
+      fmap NoteContent noteParser
+        <|> (fmap NonNoteContent nonNoteParser)
+        <|> blanklineParser
 
 fileNoteParser :: Parser FileContent
 fileNoteParser =
@@ -82,6 +111,21 @@ instance Pretty Note where
     pPrint note.title
       Text.PrettyPrint.<> (Text.PrettyPrint.hcat $ fmap pPrint note.body)
       Text.PrettyPrint.<> (maybe mempty pPrint note.id)
+
+noteParserM :: (MonadTracer r m) => ActiveSpan -> GenerateBodyId m -> m (Parser Note)
+noteParserM span generateBodyId =
+  traced_ (spanOpts "note-parser-m" $ childOf span) $ \span -> do
+    generatedBodyId <- generateBodyId.generate span
+    pure $ do
+      title <- noteTitleParser
+      body <- noteBodyParser
+      bodyId <- optional noteBodyIdParser
+      pure $
+        Note
+          { title,
+            body,
+            id = Just $ fromMaybe (BodyId $ Data.UUID.toText generatedBodyId) bodyId
+          }
 
 noteParser :: Parser Note
 noteParser = do
