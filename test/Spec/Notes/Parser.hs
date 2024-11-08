@@ -25,6 +25,9 @@ smolParser =
       (parse Notes.Parser.noteBodyLine "test" "-- this is the body of the note\n")
         `shouldBe` (Right "this is the body of the note")
 
+      parse (many $ Notes.Parser.noteBodyLine) "test" "-- id:0d8a653d-166a-4f37-894d-06bf44bddcdd\n"
+        `shouldBe` (Right [])
+
       (parse Notes.Parser.noteBodyLine "test" "-- this is the body of the note")
         `shouldBe` (Right "this is the body of the note")
 
@@ -96,21 +99,25 @@ parser =
                            Notes.Parser.body =
                              [ Notes.Parser.BodyContent "First line of the note",
                                Notes.Parser.BodyContent "Second line of the note"
-                             ]
+                             ],
+                           Notes.Parser.id = Nothing
                          }
                    )
 
     it "fileNoteParser" $ do
-      parse Notes.Parser.fileNoteParser "test" "-- # Note [This is the title of the note]\n-- First line of the note\n-- Second line of the note\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197\n\n\n"
+      parse
+        Notes.Parser.fileNoteParser
+        "test"
+        "-- # Note [This is the title of the note]\n-- First line of the note\n-- Second line of the note\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197\n"
         `shouldBe` ( Right $
                        Notes.Parser.NoteContent
                          ( Notes.Parser.Note
                              { Notes.Parser.title = Notes.Parser.NoteTitle "This is the title of the note",
                                Notes.Parser.body =
                                  [ Notes.Parser.BodyContent "First line of the note",
-                                   Notes.Parser.BodyContent "Second line of the note",
-                                   Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197"
-                                 ]
+                                   Notes.Parser.BodyContent "Second line of the note"
+                                 ],
+                               Notes.Parser.id = Just (Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
                              }
                          )
                    )
@@ -119,12 +126,13 @@ parser =
       parse
         Notes.Parser.fileParser
         "test"
-        "-- # Note [This is the title]\n-- body of the note\n\ndata NotANote = NotANote\n\n"
+        "-- # Note [This is the title]\n-- body of the note\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197\ndata NotANote = NotANote\n\n"
         `shouldBe` ( Right
                        [ Notes.Parser.NoteContent
                            ( Notes.Parser.Note
                                { Notes.Parser.title = Notes.Parser.NoteTitle "This is the title",
-                                 Notes.Parser.body = [Notes.Parser.BodyContent "body of the note"]
+                                 Notes.Parser.body = [Notes.Parser.BodyContent "body of the note"],
+                                 Notes.Parser.id = Just (Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
                                }
                            ),
                          Notes.Parser.Blankline,
@@ -142,9 +150,9 @@ parser =
                                { Notes.Parser.title = Notes.Parser.NoteTitle "This is the title of the note",
                                  Notes.Parser.body =
                                    [ Notes.Parser.BodyContent "First line of the note",
-                                     Notes.Parser.BodyContent "Second line of the note",
-                                     Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197"
-                                   ]
+                                     Notes.Parser.BodyContent "Second line of the note"
+                                   ],
+                                 Notes.Parser.id = Just (Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
                                }
                            ),
                          Notes.Parser.Blankline,
@@ -152,7 +160,14 @@ parser =
                          Notes.Parser.Blankline
                        ]
                    )
-    it "noteNoteLine & noteBodyLine" $ do
+    it "uuidBodyLine & noteBodyLine" $
+      parse
+        (many $ Notes.Parser.noteBodyLine <|> Notes.Parser.uuidBodyLine)
+        "test"
+        "-- this is a comment\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197\n"
+        `shouldBe` (Right ["this is a comment", "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197"])
+
+    it "nonNoteLine & noteBodyLine" $ do
       parse
         (many $ Notes.Parser.nonNoteLine <|> Notes.Parser.noteBodyLine)
         "test"
@@ -195,7 +210,8 @@ parser =
                        [ Notes.Parser.NoteContent
                            ( Notes.Parser.Note
                                { Notes.Parser.title = Notes.Parser.NoteTitle "This is the title",
-                                 Notes.Parser.body = [Notes.Parser.BodyContent "body of the note"]
+                                 Notes.Parser.body = [Notes.Parser.BodyContent "body of the note"],
+                                 Notes.Parser.id = Nothing
                                }
                            ),
                          Notes.Parser.Blankline
