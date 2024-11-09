@@ -4,6 +4,7 @@ module Notes.Render
   ( renderFileContentsToFile,
     render,
     prettyPrint,
+    renderFileContents,
   )
 where
 
@@ -24,6 +25,14 @@ render = Text.PrettyPrint.render
 prettyPrint :: (Pretty a) => a -> Text.PrettyPrint.Doc
 prettyPrint = pPrint
 
+renderFileContents ::
+  [Notes.Parser.FileContent] ->
+  String
+renderFileContents contents =
+  Text.PrettyPrint.render $
+    Text.PrettyPrint.cat $
+      fmap pPrint contents
+
 renderFileContentsToFile ::
   (MonadTracer r m) =>
   ActiveSpan ->
@@ -32,9 +41,4 @@ renderFileContentsToFile ::
   m ()
 renderFileContentsToFile span filepath contents =
   traced_ (spanOpts "render-file-contents-to-file" $ childOf span) $ \_span -> do
-    let renderContents =
-          Text.PrettyPrint.render $
-            Text.PrettyPrint.cat $
-              fmap pPrint contents
-
-    writeFileBS filepath (encodeUtf8 renderContents)
+    writeFileBS filepath (encodeUtf8 $ renderFileContents contents)
