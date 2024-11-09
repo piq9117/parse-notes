@@ -11,6 +11,7 @@ import Data.UUID.V4 qualified
 import Notes.DB (ManageDB)
 import Notes.NoteTitle.Queries (NoteTitleInput (..), insertNoteTitles)
 import Notes.Parser qualified
+import Notes.Render qualified
 import Notes.Tracing
   ( ActiveSpan,
     MonadTracer,
@@ -18,6 +19,7 @@ import Notes.Tracing
     spanOpts,
     traced_,
   )
+import UnliftIO.Async (concurrently_)
 
 parseFile ::
   (ManageDB m, MonadTracer r m) =>
@@ -40,20 +42,23 @@ parseFile span filepath =
           )
         .| Conduit.mapM_C
           ( \parsedFileContent ->
-              lift $
-                insertNoteTitles
-                  span
-                  [ NoteTitleInput
-                      { title = case fileContent of
-                          Notes.Parser.NoteContent note ->
-                            (\(Notes.Parser.NoteTitle title) -> title) note.title
-                          _ -> "",
-                        noteId =
-                          case fileContent of
-                            Notes.Parser.NoteContent note ->
-                              fromMaybe Data.UUID.nil (Data.UUID.fromText <=< (fmap (\(Notes.Parser.NoteId noteId) -> noteId)) $ note.id)
-                            _ -> Data.UUID.nil
-                      }
-                    | fileContent <- parsedFileContent
-                  ]
+              concurrently_
+                (Notes.Render.renderFileContentsToFile span filepath parsedFileContent)
+                ( lift $
+                    insertNoteTitles
+                      span
+                      [ NoteTitleInput
+                          { title = case fileContent of
+                              Notes.Parser.NoteContent note ->
+                                (\(Notes.Parser.NoteTitle title) -> title) note.title
+                              _ -> "",
+                            noteId =
+                              case fileContent of
+                                Notes.Parser.NoteContent note ->
+                                  fromMaybe Data.UUID.nil (Data.UUID.fromText <=< (fmap (\(Notes.Parser.NoteId noteId) -> noteId)) $ note.id)
+                                _ -> Data.UUID.nil
+                          }
+                        | fileContent <- parsedFileContent
+                      ]
+                )
           )
