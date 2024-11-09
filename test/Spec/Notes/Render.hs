@@ -30,7 +30,7 @@ renderSpec =
                      "-- second line of content\n"
                    ]
 
-      Notes.Render.render (Notes.Render.prettyPrint $ Notes.Parser.BodyId "6548a81e-5225-4bc9-99ac-31e0f355f762")
+      Notes.Render.render (Notes.Render.prettyPrint $ Notes.Parser.NoteId "6548a81e-5225-4bc9-99ac-31e0f355f762")
         `shouldBe` "-- id:6548a81e-5225-4bc9-99ac-31e0f355f762\n"
 
     it "render NoteTitle" $ do
@@ -46,7 +46,7 @@ renderSpec =
                   [ Notes.Parser.BodyContent "first line of the body",
                     Notes.Parser.BodyContent "second line of the body"
                   ],
-                Notes.Parser.id = Just (Notes.Parser.BodyId "6548a81e-5225-4bc9-99ac-31e0f355f762")
+                Notes.Parser.id = Just (Notes.Parser.NoteId "6548a81e-5225-4bc9-99ac-31e0f355f762")
               }
         )
         `shouldBe` "-- # Note [This is the title of the note]\n-- first line of the body\n-- second line of the body\n-- id:6548a81e-5225-4bc9-99ac-31e0f355f762\n"
@@ -60,7 +60,7 @@ renderSpec =
                     [ Notes.Parser.BodyContent "First line of the body",
                       Notes.Parser.BodyContent "Second line of the body"
                     ],
-                  Notes.Parser.id = Just (Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
+                  Notes.Parser.id = Just (Notes.Parser.NoteId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
                 }
             )
         ]

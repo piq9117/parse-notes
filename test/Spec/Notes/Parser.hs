@@ -88,8 +88,8 @@ parser =
         `shouldBe` (Right $ Notes.Parser.NoteTitle "This is a title")
 
     it "noteBodyIdParser" $
-      (parse Notes.Parser.noteBodyIdParser "test" "-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
-        `shouldBe` (Right $ Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
+      (parse Notes.Parser.noteIdParser "test" "-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
+        `shouldBe` (Right $ Notes.Parser.NoteId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
 
     it "noteParser" $ do
       (parse Notes.Parser.noteParser "test" "-- # Note [This is this is the title of the note]\n-- First line of the note\n-- Second line of the note")
@@ -117,7 +117,7 @@ parser =
                                  [ Notes.Parser.BodyContent "First line of the note",
                                    Notes.Parser.BodyContent "Second line of the note"
                                  ],
-                               Notes.Parser.id = Just (Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
+                               Notes.Parser.id = Just (Notes.Parser.NoteId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
                              }
                          )
                    )
@@ -132,7 +132,7 @@ parser =
                            ( Notes.Parser.Note
                                { Notes.Parser.title = Notes.Parser.NoteTitle "This is the title",
                                  Notes.Parser.body = [Notes.Parser.BodyContent "body of the note"],
-                                 Notes.Parser.id = Just (Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
+                                 Notes.Parser.id = Just (Notes.Parser.NoteId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
                                }
                            ),
                          Notes.Parser.Blankline,
@@ -152,7 +152,7 @@ parser =
                                    [ Notes.Parser.BodyContent "First line of the note",
                                      Notes.Parser.BodyContent "Second line of the note"
                                    ],
-                                 Notes.Parser.id = Just (Notes.Parser.BodyId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
+                                 Notes.Parser.id = Just (Notes.Parser.NoteId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
                                }
                            ),
                          Notes.Parser.Blankline,

@@ -8,7 +8,7 @@ module Notes.Parser
     NoteTitle (..),
     FileContent (..),
     NonNote (..),
-    BodyId (..),
+    NoteId (..),
     GenerateBodyId (..),
     parseFile,
     parseFileM,
@@ -19,7 +19,7 @@ module Notes.Parser
     noteBodyLineParser,
     noteBodyParser,
     noteTitleParser,
-    noteBodyIdParser,
+    noteIdParser,
     uuid,
     uuidBodyLine,
     fileParser,
@@ -102,7 +102,7 @@ blanklineParser = fmap (const Blankline) Text.Megaparsec.Char.eol
 data Note = Note
   { title :: !NoteTitle,
     body :: ![NoteBody],
-    id :: Maybe BodyId
+    id :: Maybe NoteId
   }
   deriving stock (Show, Eq)
 
@@ -119,19 +119,19 @@ noteParserM span generateBodyId =
     pure $ do
       title <- noteTitleParser
       body <- noteBodyParser
-      bodyId <- optional noteBodyIdParser
+      bodyId <- optional noteIdParser
       pure $
         Note
           { title,
             body,
-            id = Just $ fromMaybe (BodyId $ Data.UUID.toText generatedBodyId) bodyId
+            id = Just $ fromMaybe (NoteId $ Data.UUID.toText generatedBodyId) bodyId
           }
 
 noteParser :: Parser Note
 noteParser = do
   title <- noteTitleParser
   body <- noteBodyParser
-  id <- optional noteBodyIdParser
+  id <- optional noteIdParser
   pure
     Note
       { title,
@@ -158,17 +158,17 @@ data NoteBody
   = BodyContent !Text
   deriving stock (Eq, Show)
 
-data BodyId = BodyId !Text
+data NoteId = NoteId !Text
   deriving stock (Eq, Show)
 
-instance Pretty BodyId where
+instance Pretty NoteId where
   -- render:
   -- id:b67941d1-222b-4cfa-ba37-d02973aa2141
-  pPrint (BodyId bodyId) =
+  pPrint (NoteId noteId) =
     Text.PrettyPrint.text "--"
       Text.PrettyPrint.<> Text.PrettyPrint.space
       Text.PrettyPrint.<> Text.PrettyPrint.text "id:"
-      Text.PrettyPrint.<> Text.PrettyPrint.text (toString bodyId)
+      Text.PrettyPrint.<> Text.PrettyPrint.text (toString noteId)
       Text.PrettyPrint.<> Text.PrettyPrint.text "\n"
 
 instance ToText NoteBody where
@@ -192,10 +192,10 @@ noteBodyParser = (many noteBodyLineParser)
 noteBodyLineParser :: Parser NoteBody
 noteBodyLineParser = fmap BodyContent noteBodyLine
 
-noteBodyIdParser :: Parser BodyId
-noteBodyIdParser = do
+noteIdParser :: Parser NoteId
+noteIdParser = do
   line <- uuidBodyLine
-  pure $ BodyId line
+  pure $ NoteId line
 
 noteTitle :: Parser Text
 noteTitle = do

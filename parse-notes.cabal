@@ -78,6 +78,7 @@ library
     , sqlite-simple
     , text
     , time
+    , unliftio
     , uuid
     , yaml
 
@@ -94,6 +95,7 @@ library
     Notes.File
     Notes.Hash
     Notes.Model
+    Notes.Models.Instances
     Notes.Models.NoteBody
     Notes.Models.NoteTitle
     Notes.NoteTitle.Queries
