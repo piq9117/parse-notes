@@ -9,7 +9,13 @@ import Conduit qualified
 import Data.UUID qualified
 import Data.UUID.V4 qualified
 import Notes.DB (ManageDB)
-import Notes.NoteTitle.Queries (NoteTitleInput (..), insertNoteTitles)
+import Notes.NoteTitle.Queries
+  ( NoteTitleInput (..),
+    deleteFileContent,
+    getFileContent,
+    insertFileContent,
+    insertNoteTitles,
+  )
 import Notes.Parser qualified
 import Notes.Render qualified
 import Notes.Tracing
@@ -27,9 +33,19 @@ parseFile ::
   FilePath ->
   m ()
 parseFile span filepath =
-  traced_ (spanOpts "parse-file" $ childOf span) $ \_span ->
+  traced_ (spanOpts "parse-file" $ childOf span) $ \_span -> do
+    -- do not compose this with other conduit.
+    -- so the file read will unlock
+    void $
+      Conduit.runConduitRes $
+        Conduit.sourceFile filepath
+          .| Conduit.mapMC (lift <<< insertFileContent span)
+          .| Conduit.sinkList
+
+    fileContent <- getFileContent span
+
     Conduit.runConduitRes $
-      Conduit.sourceFile filepath
+      Conduit.yieldMany fileContent
         .| Conduit.mapMC
           ( \fileContent ->
               lift $
@@ -41,7 +57,7 @@ parseFile span filepath =
                   (decodeUtf8 fileContent)
           )
         .| Conduit.mapM_C
-          ( \parsedFileContent ->
+          ( \parsedFileContent -> do
               concurrently_
                 (Notes.Render.renderFileContentsToFile span filepath parsedFileContent)
                 ( lift $
@@ -61,4 +77,7 @@ parseFile span filepath =
                         | fileContent <- parsedFileContent
                       ]
                 )
+
+              lift (deleteFileContent span)
           )
+    pure ()

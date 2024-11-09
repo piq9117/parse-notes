@@ -11,12 +11,14 @@ import Database.Beam
     withDbModification,
   )
 import Database.Beam qualified
+import Notes.Models.FileContentCache qualified
 import Notes.Models.NoteBody qualified
 import Notes.Models.NoteTitle qualified
 
 data Database f = Database
   { noteTitles :: f (TableEntity Notes.Models.NoteTitle.NoteTitleT),
-    noteBodies :: f (TableEntity Notes.Models.NoteBody.NoteBodyT)
+    noteBodies :: f (TableEntity Notes.Models.NoteBody.NoteBodyT),
+    fileContentCache :: f (TableEntity Notes.Models.FileContentCache.FileContentCacheT)
   }
   deriving stock (Generic)
   deriving anyclass (Database.Beam.Database backend)
@@ -26,5 +28,6 @@ database =
   defaultDbSettings
     `withDbModification` dbModification
       { noteTitles = Notes.Models.NoteTitle.noteTitleSettings,
-        noteBodies = Notes.Models.NoteBody.noteBodySettings
+        noteBodies = Notes.Models.NoteBody.noteBodySettings,
+        fileContentCache = Notes.Models.FileContentCache.fileContentCacheSettings
       }

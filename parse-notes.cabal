@@ -95,6 +95,7 @@ library
     Notes.File
     Notes.Hash
     Notes.Model
+    Notes.Models.FileContentCache
     Notes.Models.Instances
     Notes.Models.NoteBody
     Notes.Models.NoteTitle
