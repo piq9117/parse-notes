@@ -8,21 +8,17 @@ module Notes.NoteTitle.Queries
   )
 where
 
+import Data.UUID (UUID)
 import Database.Beam
   ( default_,
+    insert,
     insertExpressions,
     runInsert,
     val_,
-    (<-.),
-  )
-import Database.Beam.Backend.SQL.BeamExtensions
-  ( conflictingFields,
-    insertOnConflict,
-    onConflictUpdateSet,
   )
 import Notes.DB (ManageDB (..))
-import Notes.Hash (hashContent)
 import Notes.Model (Database (..), database)
+import Notes.Models.Instances ()
 import Notes.Models.NoteTitle (NoteTitleT (..))
 import Notes.Tracing
   ( ActiveSpan,
@@ -37,7 +33,7 @@ import Prelude hiding (id)
 
 data NoteTitleInput = NoteTitleInput
   { title :: Text,
-    hash :: Text
+    noteId :: UUID
   }
   deriving (Show)
 
@@ -51,24 +47,16 @@ insertNoteTitles span noteTitles =
     addTag span ("titles-length", IntT $ fromIntegral $ length $ noteTitles)
     runQuery span $
       runInsert $
-        insertOnConflict
+        insert
           database.noteTitles
           ( insertExpressions $
               [ NoteTitle
                   { id = default_,
                     title = val_ noteTitle.title,
-                    hash = val_ (hashContent noteTitle.hash),
+                    noteId = val_ noteTitle.noteId,
                     createdAt = default_,
                     updatedAt = default_
                   }
                 | noteTitle <- noteTitles
               ]
-          )
-          (conflictingFields $ \noteTitle -> noteTitle.hash)
-          ( onConflictUpdateSet $ \current new ->
-              mconcat
-                [ current.title <-. new.title,
-                  current.hash <-. new.hash,
-                  current.updatedAt <-. new.updatedAt
-                ]
           )

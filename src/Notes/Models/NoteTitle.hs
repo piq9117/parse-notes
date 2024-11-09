@@ -12,6 +12,7 @@ module Notes.Models.NoteTitle
 where
 
 import Data.Time (UTCTime)
+import Data.UUID (UUID)
 import Database.Beam
   ( Beamable,
     Columnar,
@@ -28,7 +29,7 @@ import Prelude hiding (id)
 data NoteTitleT f = NoteTitle
   { id :: Columnar f Int64,
     title :: Columnar f Text,
-    hash :: Columnar f Text,
+    noteId :: Columnar f UUID,
     createdAt :: Columnar f UTCTime,
     updatedAt :: Columnar f UTCTime
   }
@@ -52,7 +53,7 @@ noteTitleSettings =
       tableModification
         { id = "id",
           title = "title",
-          hash = "hash",
+          noteId = "note_id",
           createdAt = "created_at",
           updatedAt = "updated_at"
         }

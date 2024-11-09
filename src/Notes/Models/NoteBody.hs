@@ -12,6 +12,7 @@ module Notes.Models.NoteBody
 where
 
 import Data.Time (UTCTime)
+import Data.UUID (UUID)
 import Database.Beam
   ( Beamable,
     Columnar,
@@ -29,6 +30,7 @@ import Prelude hiding (id)
 
 data NoteBodyT f = NoteBody
   { id :: Columnar f Int64,
+    noteId :: Columnar f UUID,
     noteTitleId :: PrimaryKey NoteTitleT f,
     body :: Columnar f Text,
     hash :: Columnar f Text,
