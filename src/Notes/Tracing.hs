@@ -4,10 +4,13 @@ module Notes.Tracing
   ( TraceSampling (..),
     MonadTracer,
     withRootTracer,
+    nullTracer,
     module Reexports,
   )
 where
 
+import OpenTracing.Reporting.Pure (noReporter)
+import System.IO.Unsafe (unsafePerformIO)
 import Conduit (MonadUnliftIO)
 import Control.Exception (bracket)
 import Control.Monad.Catch (MonadMask)
@@ -101,3 +104,12 @@ withRootTracer tracingSampling action = do
                   pure ()
             }
     action tracer
+
+nullTracer :: Tracer
+nullTracer = 
+  Tracer 
+    { tracerStart = stdTracer (unsafePerformIO $ newStdEnv $ constSampler True),
+      tracerReport = noReporter
+    }
+    
+
