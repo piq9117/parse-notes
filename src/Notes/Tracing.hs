@@ -9,8 +9,6 @@ module Notes.Tracing
   )
 where
 
-import OpenTracing.Reporting.Pure (noReporter)
-import System.IO.Unsafe (unsafePerformIO)
 import Conduit (MonadUnliftIO)
 import Control.Exception (bracket)
 import Control.Monad.Catch (MonadMask)
@@ -45,8 +43,10 @@ import OpenTracing.Reporting.Batch
     closeBatchEnv,
     newBatchEnv,
   )
+import OpenTracing.Reporting.Pure (noReporter)
 import OpenTracing.Reporting.Stdio (stderrReporter)
 import OpenTracing.Standard (newStdEnv, stdTracer)
+import System.IO.Unsafe (unsafePerformIO)
 
 type MonadTracer r m = (OpenTracing.MonadTracer r m, MonadMask m, MonadUnliftIO m)
 
@@ -106,10 +106,8 @@ withRootTracer tracingSampling action = do
     action tracer
 
 nullTracer :: Tracer
-nullTracer = 
-  Tracer 
+nullTracer =
+  Tracer
     { tracerStart = stdTracer (unsafePerformIO $ newStdEnv $ constSampler True),
       tracerReport = noReporter
     }
-    
-

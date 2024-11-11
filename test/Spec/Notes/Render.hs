@@ -3,8 +3,10 @@
 
 module Spec.Notes.Render (test_testTree) where
 
+import Data.UUID.V4 qualified
 import Notes.Parser qualified
 import Notes.Render qualified
+import Notes.Tracing (nullTracer, runTracer, spanOpts, traced_)
 import Test.Hspec (Spec, describe, it, shouldBe, xit)
 import Test.Tasty (TestTree)
 import Test.Tasty.Hspec (testSpec)
@@ -65,6 +67,32 @@ renderSpec =
             )
         ]
         `shouldBe` "-- # Note [This is the title of the note]\n-- First line of the body\n-- Second line of the body\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197\n"
+
+      runTracer nullTracer $
+        traced_ (spanOpts "parse-file-m-test" mempty) $ \span -> do
+          result <-
+            Notes.Parser.parseFileM
+              span
+              ( Notes.Parser.GenerateBodyId
+                  { Notes.Parser.generate = \span -> liftIO Data.UUID.V4.nextRandom
+                  }
+              )
+              "-- # Note [This is the title of the note]\n-- This is the body of the note from the test file.\n-- Second line of the body from the test file.\n-- id:c7017b1a-adba-43d8-9a59-37a202982932\n\ndata NotNote = NotNote"
+          liftIO
+            ( result
+                `shouldBe` [ Notes.Parser.NoteContent
+                               Notes.Parser.Note
+                                 { Notes.Parser.title = Notes.Parser.NoteTitle "This is the title of the note",
+                                   Notes.Parser.body =
+                                     [ Notes.Parser.BodyContent "This is the body of the note from the test file.",
+                                       Notes.Parser.BodyContent "Second line of the body from the test file."
+                                     ],
+                                   Notes.Parser.id = Just (Notes.Parser.NoteId "c7017b1a-adba-43d8-9a59-37a202982932")
+                                 },
+                             Notes.Parser.Blankline,
+                             Notes.Parser.NonNoteContent (Notes.Parser.NonNote "data NotNote = NotNote")
+                           ]
+            )
 
 test_testTree :: IO TestTree
 test_testTree =
