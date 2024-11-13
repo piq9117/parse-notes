@@ -30,7 +30,7 @@ module Notes.Parser
   )
 where
 
-import Control.Applicative.Combinators (between, count, manyTill)
+import Control.Applicative.Combinators (between, manyTill)
 import Data.UUID qualified
 import Notes.Tracing (ActiveSpan, MonadTracer, childOf, spanOpts, traced_)
 import Text.Megaparsec
@@ -53,8 +53,7 @@ data FileContent
 
 instance Pretty FileContent where
   pPrint (NoteContent note) = pPrint note
-  pPrint Blankline =
-    Text.PrettyPrint.text "\n"
+  pPrint Blankline = Text.PrettyPrint.text ""
   pPrint (NonNoteContent nonNotes) =
     pPrint nonNotes
 
@@ -169,7 +168,6 @@ instance Pretty NoteId where
       Text.PrettyPrint.<> Text.PrettyPrint.space
       Text.PrettyPrint.<> Text.PrettyPrint.text "id:"
       Text.PrettyPrint.<> Text.PrettyPrint.text (toString noteId)
-      Text.PrettyPrint.<> Text.PrettyPrint.text "\n"
 
 instance ToText NoteBody where
   toText (BodyContent content) = content
@@ -244,7 +242,9 @@ uuidBodyLine = do
 uuid :: Parser Text
 uuid = do
   uuidContent <-
-    (count 36 (Text.Megaparsec.Char.alphaNumChar <|> Text.Megaparsec.Char.char '-'))
+    manyTill
+      (Text.Megaparsec.Char.alphaNumChar <|> Text.Megaparsec.Char.char '-')
+      noteBodyLineEnd
   case Data.UUID.fromText (toText uuidContent) of
     Nothing -> fail "Invalid UUID format"
     Just uuidContent -> pure $ Data.UUID.toText uuidContent

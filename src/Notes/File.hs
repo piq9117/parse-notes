@@ -20,7 +20,9 @@ import Notes.Parser qualified
 import Notes.Render qualified
 import Notes.Tracing
   ( ActiveSpan,
+    LogField (..),
     MonadTracer,
+    addLogRecord,
     childOf,
     spanOpts,
     traced_,
@@ -58,6 +60,7 @@ parseFile span filepath =
           )
         .| Conduit.mapM_C
           ( \parsedFileContent -> do
+              addLogRecord span (Message $ show parsedFileContent)
               concurrently_
                 (Notes.Render.renderFileContentsToFile span filepath parsedFileContent)
                 ( lift $

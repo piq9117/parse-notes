@@ -142,7 +142,6 @@ parser =
                                  Notes.Parser.id = Just (Notes.Parser.NoteId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
                                }
                            ),
-                         Notes.Parser.Blankline,
                          Notes.Parser.NonNoteContent (Notes.Parser.NonNote "data NotANote = NotANote"),
                          Notes.Parser.Blankline
                        ]
@@ -162,7 +161,6 @@ parser =
                                  Notes.Parser.id = Just (Notes.Parser.NoteId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
                                }
                            ),
-                         Notes.Parser.Blankline,
                          Notes.Parser.Blankline,
                          Notes.Parser.Blankline
                        ]
