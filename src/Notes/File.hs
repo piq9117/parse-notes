@@ -6,23 +6,19 @@ module Notes.File (parseFile) where
 
 import Conduit ((.|))
 import Conduit qualified
-import Data.UUID qualified
 import Data.UUID.V4 qualified
 import Notes.DB (ManageDB)
 import Notes.NoteTitle.Queries
-  ( NoteTitleInput (..),
-    deleteFileContent,
+  ( deleteFileContent,
     getFileContent,
     insertFileContent,
-    insertNoteTitles,
+    insertNotes,
   )
 import Notes.Parser qualified
 import Notes.Render qualified
 import Notes.Tracing
   ( ActiveSpan,
-    LogField (..),
     MonadTracer,
-    addLogRecord,
     childOf,
     spanOpts,
     traced_,
@@ -60,25 +56,10 @@ parseFile span filepath =
           )
         .| Conduit.mapM_C
           ( \parsedFileContent -> do
-              addLogRecord span (Message $ show parsedFileContent)
               concurrently_
                 (Notes.Render.renderFileContentsToFile span filepath parsedFileContent)
                 ( lift $
-                    insertNoteTitles
-                      span
-                      [ NoteTitleInput
-                          { title = case fileContent of
-                              Notes.Parser.NoteContent note ->
-                                (\(Notes.Parser.NoteTitle title) -> title) note.title
-                              _ -> "",
-                            noteId =
-                              case fileContent of
-                                Notes.Parser.NoteContent note ->
-                                  fromMaybe Data.UUID.nil (Data.UUID.fromText <=< (fmap (\(Notes.Parser.NoteId noteId) -> noteId)) $ note.id)
-                                _ -> Data.UUID.nil
-                          }
-                        | fileContent <- parsedFileContent
-                      ]
+                    insertNotes span (Notes.Parser.toNotes parsedFileContent)
                 )
 
               lift (deleteFileContent span)

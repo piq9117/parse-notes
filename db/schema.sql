@@ -8,7 +8,6 @@ CREATE TABLE note_titles (
 );
 CREATE TABLE note_bodies (
   id INTEGER NOT NULL PRIMARY KEY,
-  note_title__id INTEGER NOT NULL REFERENCES note_titles(id),
   body TEXT NOT NULL,
   note_id TEXT UNIQUE NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

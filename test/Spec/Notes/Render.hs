@@ -3,6 +3,8 @@
 
 module Spec.Notes.Render (test_testTree) where
 
+import Data.Maybe (fromJust)
+import Data.UUID qualified
 import Data.UUID.V4 qualified
 import Notes.Parser qualified
 import Notes.Render qualified
@@ -19,20 +21,19 @@ renderSpec =
         `shouldBe` "this is not a note\n"
 
     it "render NoteBody" $ do
-      Notes.Render.render (Notes.Render.prettyPrint $ Notes.Parser.BodyContent "this is the note body content")
+      Notes.Render.render (Notes.Render.prettyPrint $ Notes.Parser.NoteBody ["this is the note body content"])
         `shouldBe` "-- this is the note body content\n"
 
-      ( fmap
-          (Notes.Render.render <<< Notes.Render.prettyPrint)
-          [ Notes.Parser.BodyContent "first line of content",
-            Notes.Parser.BodyContent "second line of content"
-          ]
+      ( (Notes.Render.render <<< Notes.Render.prettyPrint)
+          ( Notes.Parser.NoteBody
+              [ "first line of content",
+                "second line of content"
+              ]
+          )
         )
-        `shouldBe` [ "-- first line of content\n",
-                     "-- second line of content\n"
-                   ]
+        `shouldBe` "-- first line of content\n-- second line of content\n"
 
-      Notes.Render.render (Notes.Render.prettyPrint $ Notes.Parser.NoteId "6548a81e-5225-4bc9-99ac-31e0f355f762")
+      Notes.Render.render (Notes.Render.prettyPrint $ Notes.Parser.NoteId $ fromJust $ Data.UUID.fromText "6548a81e-5225-4bc9-99ac-31e0f355f762")
         `shouldBe` "-- id:6548a81e-5225-4bc9-99ac-31e0f355f762\n"
 
     it "render NoteTitle" $ do
@@ -45,10 +46,11 @@ renderSpec =
             Notes.Parser.Note
               { Notes.Parser.title = Notes.Parser.NoteTitle "This is the title of the note",
                 Notes.Parser.body =
-                  [ Notes.Parser.BodyContent "first line of the body",
-                    Notes.Parser.BodyContent "second line of the body"
-                  ],
-                Notes.Parser.id = Just (Notes.Parser.NoteId "6548a81e-5225-4bc9-99ac-31e0f355f762")
+                  Notes.Parser.NoteBody
+                    [ "first line of the body",
+                      "second line of the body"
+                    ],
+                Notes.Parser.id = Notes.Parser.NoteId (fromJust $ Data.UUID.fromText "6548a81e-5225-4bc9-99ac-31e0f355f762")
               }
         )
         `shouldBe` "-- # Note [This is the title of the note]\n-- first line of the body\n-- second line of the body\n-- id:6548a81e-5225-4bc9-99ac-31e0f355f762\n"
@@ -59,10 +61,11 @@ renderSpec =
             ( Notes.Parser.Note
                 { Notes.Parser.title = Notes.Parser.NoteTitle "This is the title of the note",
                   Notes.Parser.body =
-                    [ Notes.Parser.BodyContent "First line of the body",
-                      Notes.Parser.BodyContent "Second line of the body"
-                    ],
-                  Notes.Parser.id = Just (Notes.Parser.NoteId "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
+                    Notes.Parser.NoteBody
+                      [ "First line of the body",
+                        "Second line of the body"
+                      ],
+                  Notes.Parser.id = Notes.Parser.NoteId (fromJust $ Data.UUID.fromText "2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197")
                 }
             )
         ]
@@ -84,10 +87,13 @@ renderSpec =
                                Notes.Parser.Note
                                  { Notes.Parser.title = Notes.Parser.NoteTitle "This is the title of the note",
                                    Notes.Parser.body =
-                                     [ Notes.Parser.BodyContent "This is the body of the note from the test file.",
-                                       Notes.Parser.BodyContent "Second line of the body from the test file."
-                                     ],
-                                   Notes.Parser.id = Just (Notes.Parser.NoteId "c7017b1a-adba-43d8-9a59-37a202982932")
+                                     Notes.Parser.NoteBody
+                                       [ "This is the body of the note from the test file.",
+                                         "Second line of the body from the test file."
+                                       ],
+                                   Notes.Parser.id =
+                                     Notes.Parser.NoteId
+                                       (fromJust $ Data.UUID.fromText "c7017b1a-adba-43d8-9a59-37a202982932")
                                  },
                              Notes.Parser.Blankline,
                              Notes.Parser.NonNoteContent (Notes.Parser.NonNote "data NotNote = NotNote")

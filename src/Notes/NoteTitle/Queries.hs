@@ -3,15 +3,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Notes.NoteTitle.Queries
-  ( NoteTitleInput (..),
-    insertNoteTitles,
-    insertFileContent,
+  ( insertFileContent,
     deleteFileContent,
     getFileContent,
+    insertNotes,
   )
 where
 
-import Data.UUID (UUID)
 import Database.Beam
   ( all_,
     default_,
@@ -37,23 +35,18 @@ import Notes.DB (ManageDB (..))
 import Notes.Model (Database (..), database)
 import Notes.Models.FileContentCache (FileContentCacheT (..))
 import Notes.Models.Instances ()
+import Notes.Models.NoteBody (NoteBodyT (..))
 import Notes.Models.NoteTitle (NoteTitleT (..))
+import Notes.Parser qualified
+import Notes.Render qualified
 import Notes.Tracing
   ( ActiveSpan,
     MonadTracer,
-    TagVal (..),
-    addTag,
     childOf,
     spanOpts,
     traced_,
   )
 import Prelude hiding (id)
-
-data NoteTitleInput = NoteTitleInput
-  { title :: Text,
-    noteId :: UUID
-  }
-  deriving (Show)
 
 insertFileContent ::
   (MonadTracer r m, ManageDB m) =>
@@ -99,33 +92,54 @@ deleteFileContent span =
       runDelete $
         delete database.fileContentCache (const $ val_ True)
 
-insertNoteTitles ::
-  (ManageDB m, MonadTracer r m) =>
+insertNotes ::
+  (MonadTracer r m, ManageDB m) =>
   ActiveSpan ->
-  [NoteTitleInput] ->
+  [Notes.Parser.Note] ->
   m ()
-insertNoteTitles span noteTitles =
-  traced_ (spanOpts "insert-note-titles" $ childOf span) $ \span -> do
-    addTag span ("titles-length", IntT $ fromIntegral $ length $ noteTitles)
-    runQuery span $
+insertNotes span notes =
+  traced_ (spanOpts "insert-notes" $ childOf span) $ \span ->
+    runQuery span $ do
       runInsert $
         insertOnConflict
           database.noteTitles
           ( insertExpressions $
               [ NoteTitle
                   { id = default_,
-                    title = val_ noteTitle.title,
-                    noteId = val_ noteTitle.noteId,
+                    title = val_ ((\(Notes.Parser.NoteTitle title) -> title) $ note.title),
+                    noteId = val_ ((\(Notes.Parser.NoteId noteId) -> noteId) $ note.id),
                     createdAt = default_,
                     updatedAt = default_
                   }
-                | noteTitle <- noteTitles
+                | note <- notes
               ]
           )
-          (conflictingFields $ \asyncExport -> asyncExport.noteId)
+          (conflictingFields $ \note -> note.noteId)
           ( onConflictUpdateSet $ \old new ->
               mconcat
                 [ old.title <-. new.title,
+                  old.updatedAt <-. new.updatedAt
+                ]
+          )
+
+      runInsert $
+        insertOnConflict
+          database.noteBodies
+          ( insertExpressions $ do
+              note <- notes
+              [ NoteBody
+                  { id = default_,
+                    noteId = val_ ((\(Notes.Parser.NoteId noteId) -> noteId) $ note.id),
+                    body = val_ (toText $ Notes.Render.render $ Notes.Render.prettyPrint note.body),
+                    createdAt = default_,
+                    updatedAt = default_
+                  }
+                ]
+          )
+          (conflictingFields $ \note -> note.noteId)
+          ( onConflictUpdateSet $ \old new ->
+              mconcat
+                [ old.body <-. new.body,
                   old.updatedAt <-. new.updatedAt
                 ]
           )

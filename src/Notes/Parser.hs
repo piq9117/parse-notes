@@ -10,23 +10,19 @@ module Notes.Parser
     NonNote (..),
     NoteId (..),
     GenerateBodyId (..),
-    parseFile,
     parseFileM,
     noteTitle,
     noteBody,
     noteBodyLine,
-    noteParser,
-    noteBodyLineParser,
     noteBodyParser,
     noteTitleParser,
     noteIdParser,
     uuid,
     uuidBodyLine,
-    fileParser,
-    fileNoteParser,
     blanklineParser,
     nonNoteParser,
     nonNoteLine,
+    toNotes,
   )
 where
 
@@ -61,9 +57,6 @@ newtype GenerateBodyId m = GenerateBodyId
   { generate :: ActiveSpan -> m Data.UUID.UUID
   }
 
-parseFile :: Text -> [FileContent]
-parseFile content = fromMaybe [] (Text.Megaparsec.parseMaybe fileParser content)
-
 parseFileM :: (MonadTracer r m) => ActiveSpan -> GenerateBodyId m -> Text -> m [FileContent]
 parseFileM span generateBodyId content =
   traced_ (spanOpts "parse-file-m" $ childOf span) $ \span -> do
@@ -77,9 +70,6 @@ fileParserM span generateBodyId =
     pure $
       many fileNoteParser
 
-fileParser :: Parser [FileContent]
-fileParser = many fileNoteParser
-
 fileNoteParserM :: (MonadTracer r m) => ActiveSpan -> GenerateBodyId m -> m (Parser FileContent)
 fileNoteParserM span generateBodyId =
   traced_ (spanOpts "file-note-parser-m" $ childOf span) $ \span -> do
@@ -89,27 +79,21 @@ fileNoteParserM span generateBodyId =
         <|> (fmap NonNoteContent nonNoteParser)
         <|> blanklineParser
 
-fileNoteParser :: Parser FileContent
-fileNoteParser =
-  fmap NoteContent noteParser
-    <|> (fmap NonNoteContent nonNoteParser)
-    <|> blanklineParser
-
 blanklineParser :: Parser FileContent
 blanklineParser = fmap (const Blankline) Text.Megaparsec.Char.eol
 
 data Note = Note
   { title :: !NoteTitle,
-    body :: ![NoteBody],
-    id :: Maybe NoteId
+    body :: !NoteBody,
+    id :: NoteId
   }
   deriving stock (Show, Eq)
 
 instance Pretty Note where
   pPrint note =
     pPrint note.title
-      Text.PrettyPrint.<> (Text.PrettyPrint.hcat $ fmap pPrint note.body)
-      Text.PrettyPrint.<> (maybe mempty pPrint note.id)
+      Text.PrettyPrint.<> (pPrint note.body)
+      Text.PrettyPrint.<> (pPrint note.id)
 
 noteParserM :: (MonadTracer r m) => ActiveSpan -> GenerateBodyId m -> m (Parser Note)
 noteParserM span generateBodyId =
@@ -123,20 +107,8 @@ noteParserM span generateBodyId =
         Note
           { title,
             body,
-            id = bodyId <|> (Just $ NoteId generatedBodyId)
+            id = fromMaybe (NoteId generatedBodyId) bodyId
           }
-
-noteParser :: Parser Note
-noteParser = do
-  title <- noteTitleParser
-  body <- noteBodyParser
-  id <- optional noteIdParser
-  pure
-    Note
-      { title,
-        body,
-        id
-      }
 
 data NoteTitle = NoteTitle !Text
   deriving stock (Eq, Show)
@@ -153,9 +125,25 @@ instance Pretty NoteTitle where
 instance ToText NoteTitle where
   toText (NoteTitle title) = title
 
-data NoteBody
-  = BodyContent !Text
+data NoteBody = NoteBody ![Text]
   deriving stock (Eq, Show)
+
+instance ToText NoteBody where
+  toText (NoteBody content) = show content
+
+instance Pretty NoteBody where
+  -- render:
+  -- This is the body
+  pPrint (NoteBody contents) =
+    Text.PrettyPrint.hcat $
+      fmap
+        ( \content ->
+            Text.PrettyPrint.text "--"
+              Text.PrettyPrint.<> Text.PrettyPrint.space
+              Text.PrettyPrint.<> Text.PrettyPrint.text (toString content)
+              Text.PrettyPrint.<> Text.PrettyPrint.text "\n"
+        )
+        contents
 
 data NoteId = NoteId !Data.UUID.UUID
   deriving stock (Eq, Show)
@@ -169,26 +157,13 @@ instance Pretty NoteId where
       Text.PrettyPrint.<> Text.PrettyPrint.text "id:"
       Text.PrettyPrint.<> Text.PrettyPrint.text (Data.UUID.toString noteId)
 
-instance ToText NoteBody where
-  toText (BodyContent content) = content
-
-instance Pretty NoteBody where
-  -- render:
-  -- This is the body
-  pPrint (BodyContent content) =
-    Text.PrettyPrint.text "--"
-      Text.PrettyPrint.<> Text.PrettyPrint.space
-      Text.PrettyPrint.<> Text.PrettyPrint.text (toString content)
-      Text.PrettyPrint.<> Text.PrettyPrint.text "\n"
-
 noteTitleParser :: Parser NoteTitle
 noteTitleParser = fmap NoteTitle noteTitle
 
-noteBodyParser :: Parser [NoteBody]
-noteBodyParser = (many noteBodyLineParser)
-
-noteBodyLineParser :: Parser NoteBody
-noteBodyLineParser = fmap BodyContent noteBodyLine
+noteBodyParser :: Parser NoteBody
+noteBodyParser = do
+  lines <- many noteBodyLine
+  pure $ NoteBody lines
 
 noteIdParser :: Parser NoteId
 noteIdParser = do
@@ -266,3 +241,10 @@ nonNoteLine = do
   line <- Text.Megaparsec.takeWhile1P Nothing (/= '\n')
   noteBodyLineEnd
   pure line
+
+toNotes :: [FileContent] -> [Note]
+toNotes fileContents =
+  fileContents >>= \fileContent ->
+    case fileContent of
+      NoteContent note -> [note]
+      _ -> []

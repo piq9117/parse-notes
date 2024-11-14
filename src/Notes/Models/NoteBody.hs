@@ -25,15 +25,12 @@ import Database.Beam
     setEntityName,
     tableModification,
   )
-import Notes.Models.NoteTitle (NoteTitleT, PrimaryKey (NoteTitleId))
 import Prelude hiding (id)
 
 data NoteBodyT f = NoteBody
   { id :: Columnar f Int64,
     noteId :: Columnar f UUID,
-    noteTitleId :: PrimaryKey NoteTitleT f,
     body :: Columnar f Text,
-    hash :: Columnar f Text,
     createdAt :: Columnar f UTCTime,
     updatedAt :: Columnar f UTCTime
   }
@@ -56,9 +53,8 @@ noteBodySettings =
     <> modifyTableFields
       tableModification
         { id = "id",
-          noteTitleId = NoteTitleId "note_title__id",
           body = "body",
-          hash = "hash",
+          noteId = "note_id",
           createdAt = "created_at",
           updatedAt = "updated_at"
         }
