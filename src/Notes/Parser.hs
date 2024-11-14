@@ -123,7 +123,7 @@ noteParserM span generateBodyId =
         Note
           { title,
             body,
-            id = Just $ fromMaybe (NoteId $ Data.UUID.toText generatedBodyId) bodyId
+            id = bodyId <|> (Just $ NoteId generatedBodyId)
           }
 
 noteParser :: Parser Note
@@ -157,7 +157,7 @@ data NoteBody
   = BodyContent !Text
   deriving stock (Eq, Show)
 
-data NoteId = NoteId !Text
+data NoteId = NoteId !Data.UUID.UUID
   deriving stock (Eq, Show)
 
 instance Pretty NoteId where
@@ -167,7 +167,7 @@ instance Pretty NoteId where
     Text.PrettyPrint.text "--"
       Text.PrettyPrint.<> Text.PrettyPrint.space
       Text.PrettyPrint.<> Text.PrettyPrint.text "id:"
-      Text.PrettyPrint.<> Text.PrettyPrint.text (toString noteId)
+      Text.PrettyPrint.<> Text.PrettyPrint.text (Data.UUID.toString noteId)
 
 instance ToText NoteBody where
   toText (BodyContent content) = content
@@ -233,13 +233,13 @@ commentStart = do
   Text.Megaparsec.Char.space
   pure ()
 
-uuidBodyLine :: Parser Text
+uuidBodyLine :: Parser Data.UUID.UUID
 uuidBodyLine = do
   commentStart
   void (Text.Megaparsec.try $ Text.Megaparsec.Char.string "id:")
   uuid
 
-uuid :: Parser Text
+uuid :: Parser Data.UUID.UUID
 uuid = do
   uuidContent <-
     manyTill
@@ -247,7 +247,7 @@ uuid = do
       noteBodyLineEnd
   case Data.UUID.fromText (toText uuidContent) of
     Nothing -> fail "Invalid UUID format"
-    Just uuidContent -> pure $ Data.UUID.toText uuidContent
+    Just uuid -> pure uuid
 
 data NonNote = NonNote !Text
   deriving stock (Show, Eq)
