@@ -34,7 +34,7 @@ renderSpec =
         `shouldBe` "-- first line of content\n-- second line of content\n"
 
       Notes.Render.render (Notes.Render.prettyPrint $ Notes.Parser.NoteId $ fromJust $ Data.UUID.fromText "6548a81e-5225-4bc9-99ac-31e0f355f762")
-        `shouldBe` "-- id:6548a81e-5225-4bc9-99ac-31e0f355f762\n"
+        `shouldBe` "-- id:6548a81e-5225-4bc9-99ac-31e0f355f762"
 
     it "render NoteTitle" $ do
       Notes.Render.render (Notes.Render.prettyPrint $ Notes.Parser.NoteTitle "This is the title of the note")
@@ -53,7 +53,7 @@ renderSpec =
                 Notes.Parser.id = Notes.Parser.NoteId (fromJust $ Data.UUID.fromText "6548a81e-5225-4bc9-99ac-31e0f355f762")
               }
         )
-        `shouldBe` "-- # Note [This is the title of the note]\n-- first line of the body\n-- second line of the body\n-- id:6548a81e-5225-4bc9-99ac-31e0f355f762\n"
+        `shouldBe` "-- # Note [This is the title of the note]\n-- first line of the body\n-- second line of the body\n-- id:6548a81e-5225-4bc9-99ac-31e0f355f762"
 
     it "renderFileContents" $ do
       Notes.Render.renderFileContents
@@ -69,7 +69,7 @@ renderSpec =
                 }
             )
         ]
-        `shouldBe` "-- # Note [This is the title of the note]\n-- First line of the body\n-- Second line of the body\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197\n"
+        `shouldBe` "-- # Note [This is the title of the note]\n-- First line of the body\n-- Second line of the body\n-- id:2efcf3a3-1f17-4f3a-8e6a-ea0fe2bac197"
 
       runTracer nullTracer $
         traced_ (spanOpts "parse-file-m-test" mempty) $ \span -> do
